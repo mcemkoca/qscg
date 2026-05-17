@@ -1,167 +1,161 @@
-# QSCG v2.1 - Quantum-Safe Cryptography GitHub Repository
+# 🔐 Quantum-Safe Kriptografi - Kafes (Lattice) Tabanlı
 
-## Overview
+[![NIST](https://img.shields.io/badge/NIST-FIPS%20203%2F204%2F205-blue)](https://www.nist.gov/pqc)
+[![Quantum-Safe](https://img.shields.io/badge/Quantum-Safe-success)](https://en.wikipedia.org/wiki/Post-quantum_cryptography)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://python.org)
 
-Quantum-Safe Cryptography Educational Implementation based on NIST FIPS 203/204/205 Standards.
+> **NIST Post-Quantum Cryptography (PQC) Standartlarına uygun, kuantum bilgisayarlara karşı dirençli kriptografik araç seti.**
 
-**Author:** Dante (mcemkoca)  
-**Repository:** https://github.com/mcemkoca/qscg  
-**License:** MIT
+## 🚀 Özellikler
 
-## Implemented Algorithms
+- **🔐 ML-KEM (FIPS 203)**: Module-Lattice-Based Key Encapsulation Mechanism
+- **✍️ ML-DSA (FIPS 204)**: Module-Lattice-Based Digital Signature Algorithm  
+- **🔒 AES-256-GCM**: Simetrik şifreleme (Authenticated Encryption)
+- **⚡ Tek Tık İşlemler**: Kullanıcı dostu masaüstü arayüzü
+- **📊 Karşılaştırma**: Klasik vs Kafes kriptografi analizi
+- **⚛️ Kuantum Analiz**: Shor, Grover, HNDL tehdit değerlendirmesi
 
-### ✓ Working Components
-
-1. **Educational NTT** - Number Theoretic Transform
-   - Standard integer arithmetic (no Montgomery optimization)
-   - Complete NTT (8 layers) for mathematical transparency
-   - Verified round-trip correctness
-
-2. **Polynomial Arithmetic** - R_q = Z_q[X]/(X^n + 1)
-   - Addition, subtraction, multiplication using NTT
-   - Center reduction and byte serialization
-
-3. **Hybrid Encryption** - Quantum-Safe KEM + AES-256-GCM
-   - Deterministic hash-based key derivation
-   - Working encrypt/decrypt with test validation
-   - Falls back to SHAKE256 stream cipher if cryptography library unavailable
-
-### Educational/Simplified Components
-
-4. **ML-DSA** (Dilithium) - Module Lattice-based Digital Signature
-   - Based on NIST FIPS 204
-   - Fiat-Shamir with aborts structure
-   - Simplified norm checks and hint generation
-
-5. **SLH-DSA** (SPHINCS+) - Stateless Hash-Based Digital Signature
-   - Based on NIST FIPS 205
-   - Simplified hypertree and FORS structures
-
-## Key Design Decisions
-
-### NTT Simplification
-Real Kyber/ML-KEM uses:
-- Montgomery form for efficient modular multiplication
-- Incomplete NTT (7 layers, 128 degree-2 polynomials)
-- Barrett reduction
-
-This educational version uses:
-- Standard integer arithmetic for clarity
-- Complete NTT (8 layers, full decomposition)
-- Simple modular reduction
-
-**Trade-off:** Slower but mathematically transparent and correct.
-
-### KEM Simplification
-Real ML-KEM uses:
-- Complex MLWE-based key encapsulation
-- Noise-based message recovery
-- Implicit rejection mechanism
-
-This version uses:
-- Hash-based deterministic key derivation
-- Simplified but working key agreement
-- Educational clarity over full complexity
-
-## Usage
-
-```python
-from qscg_v2_1 import HybridCryptoSystem, SecurityLevel
-
-# Initialize hybrid encryption
-hybrid = HybridCryptoSystem(SecurityLevel.LEVEL_1)
-
-# Generate key pair
-encapsulation_key, decapsulation_key = hybrid.keygen()
-
-# Encrypt message
-plaintext = b"Hello, Quantum-Safe World!"
-ciphertext = hybrid.encrypt(encapsulation_key, plaintext)
-
-# Decrypt message
-decrypted = hybrid.decrypt(decapsulation_key, ciphertext)
-print(decrypted.decode())  # Hello, Quantum-Safe World!
-```
-
-## Testing
-
-Run the built-in test suite:
+## 📦 Kurulum
 
 ```bash
-python qscg_v2_1.py
+# Gereksinimler
+pip install cryptography numpy
+
+# Uygulamayı çalıştır
+python src/quantum_safe_gui.py
 ```
 
-Expected output:
-- NTT Round-Trip: ✓ PASS
-- Polynomial Arithmetic: ✓ PASS  
-- Hybrid Encryption: ✓ PASS
+## 🖥️ Kullanım
 
-## Security Notice
+### 1. ML-KEM Anahtar Değişimi
+```python
+from src.lattice_crypto import MLKEM
 
-**This is an EDUCATIONAL implementation.**
+# Anahtar üret
+kem = MLKEM(level=3)  # Level 3 = AES-192 eşdeğeri
+keys = kem.keygen()
 
-For production use, consider:
-- [liboqs](https://github.com/open-quantum-safe/liboqs) (Open Quantum Safe)
-- [pq-crystals](https://pq-crystals.org/) reference implementations
-- Hardware acceleration (AVX2, NEON)
+# Kapsülle
+ct, secret = kem.encapsulate(keys['pk'])
 
-## Mathematical Background
-
-### Module Learning With Errors (MLWE)
-The security of ML-KEM is based on the hardness of the MLWE problem:
-
-Given: A (public matrix), t = A·s + e (public vector)  
-Find: s (secret vector)
-
-where s and e are small-norm vectors, and all operations are in R_q.
-
-### Number Theoretic Transform (NTT)
-NTT enables O(n log n) polynomial multiplication in R_q:
-
-1. Forward NTT: Convert coefficient representation to evaluation representation
-2. Pointwise multiply in NTT domain
-3. Inverse NTT: Convert back to coefficient representation
-
-### Fiat-Shamir with Aborts (ML-DSA)
-Signature scheme using rejection sampling:
-1. Prover commits to random masking vector y
-2. Challenge c = H(message || commitment)
-3. Response z = y + c·s (rejected if norm too large)
-4. Verification checks z and recomputes challenge
-
-## File Structure
-
-```
-qscg/
-├── qscg_v2_1.py          # Main implementation
-├── README.md             # This file
-├── LICENSE               # MIT License
-└── tests/
-    └── test_qscg.py      # Additional tests
+# Aç
+recovered = kem.decapsulate(keys['sk'], ct)
+assert secret == recovered  # ✅ Başarılı
 ```
 
-## References
+### 2. ML-DSA Dijital İmza
+```python
+from src.lattice_crypto import MLDSA
 
-- NIST FIPS 203: Module-Lattice-Based Key-Encapsulation Mechanism Standard
-- NIST FIPS 204: Module-Lattice-Based Digital Signature Standard
-- NIST FIPS 205: Stateless Hash-Based Digital Signature Standard
-- CRYSTALS-Kyber: https://pq-crystals.org/kyber/
-- CRYSTALS-Dilithium: https://pq-crystals.org/dilithium/
+# Anahtar üret
+dsa = MLDSA(level=3)
+keys = dsa.keygen()
 
-## Changelog
+# İmzala
+message = b"Kuantum güvenli mesaj"
+signature = dsa.sign(keys['sk'], message)
 
-### v2.1
-- Fixed NTT round-trip correctness
-- Simplified KEM with deterministic key derivation
-- Working hybrid encryption (KEM + AES-256-GCM)
-- Educational ML-DSA and SLH-DSA structures
-- Comprehensive documentation
+# Doğrula
+valid = dsa.verify(keys['pk'], message, signature)
+assert valid  # ✅ Geçerli
+```
 
-### v2.0
-- Initial lattice-based structure
-- Academic foundation with MLWE/SIS mathematics
-- Productization policy framework
+### 3. AES-256-GCM Şifreleme
+```python
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-## Contact
+key = os.urandom(32)
+nonce = os.urandom(12)
+aesgcm = AESGCM(key)
 
-For questions or contributions, please open an issue on GitHub.
+ciphertext = aesgcm.encrypt(nonce, b"Gizli veri", None)
+plaintext = aesgcm.decrypt(nonce, ciphertext, None)
+```
+
+## 📊 Algoritma Karşılaştırması
+
+| Özellik | Klasik (RSA/ECC) | Kafes (ML-KEM/ML-DSA) |
+|---------|------------------|----------------------|
+| Kuantum Güvenlik | ❌ Kırılır | ✅ Dirençli |
+| NIST Durum | 2035 Yasak | FIPS 203/204/205 |
+| Public Key | 32-256 bytes | 1,184 bytes (ML-KEM-768) |
+| İmza Boyutu | 64 bytes (ECDSA) | 3,293 bytes (ML-DSA-65) |
+| KeyGen Hızı | Yavaş (RSA) | ~100 mikrosaniye |
+| Matematiksel Temel | Tam Çarpana Ayırma | Module-LWE / Module-SIS |
+
+## ⚛️ Kuantum Tehdidi Analizi
+
+### Shor Algoritması
+- **RSA ve ECC**: Polinom zamanda kırılır (O(n³))
+- **Kafes Kripto**: **UYGULANAMAZ** - farklı matematiksel temel
+
+### Grover Algoritması  
+- **Simetrik Şifreleme**: Arama hızlanması O(N) → O(√N)
+- **AES-256**: Kuantumda ~128-bit güvenlik (YETERLİ)
+- **Kafes Kripto**: Doğrudan etkisi YOK
+
+### Harvest Now, Decrypt Later (HNDL)
+> Düşmanlar bugün şifreli veriyi toplar, yarın çözer.
+> 
+> **Çözüm**: Hemen hibrit kriptografi geçişi (X25519Kyber768)
+
+## 📅 Migrasyon Takvimi
+
+| Tarih | Olay |
+|-------|------|
+| 2026 Eylül | FIPS 140-2 sunset |
+| 2027 Ocak | CNSA 2.0 - PQC zorunlu |
+| 2030 | 112-bit algoritmalar deprecated |
+| 2035 | Klasik algoritmalar **YASAK** |
+
+## 🛠️ Proje Yapısı
+
+```
+quantum-safe-crypto/
+├── src/
+│   ├── __init__.py
+│   ├── lattice_crypto.py      # Kafes kriptografi kütüphanesi
+│   ├── quantum_safe_gui.py    # Masaüstü uygulaması
+│   └── utils.py               # Yardımcı fonksiyonlar
+├── docs/
+│   ├── NIST_FIPS_203.md       # ML-KEM spesifikasyonu
+│   ├── NIST_FIPS_204.md       # ML-DSA spesifikasyonu
+│   └── quantum_analysis.md    # Kuantum analiz raporu
+├── diagrams/
+│   ├── diagram1_overview.png  # Genel yapı
+│   ├── diagram2_mlkem.png     # ML-KEM detaylı
+│   └── ...                    # 8 adet diyagram
+├── tests/
+│   └── test_lattice.py        # Birim testleri
+├── README.md
+├── LICENSE
+└── requirements.txt
+```
+
+## 📚 Kaynaklar
+
+- [NIST PQC Project](https://www.nist.gov/pqc)
+- [FIPS 203: ML-KEM](https://csrc.nist.gov/pubs/fips/203/final)
+- [FIPS 204: ML-DSA](https://csrc.nist.gov/pubs/fips/204/final)
+- [FIPS 205: SLH-DSA](https://csrc.nist.gov/pubs/fips/205/final)
+- [CRYSTALS-Kyber](https://pq-crystals.org/kyber/)
+- [CRYSTALS-Dilithium](https://pq-crystals.org/dilithium/)
+
+## ⚠️ Uyarı
+
+Bu proje eğitim ve araştırma amaçlıdır. Üretim ortamında kullanmadan önce:
+- Formal doğrulama yapın
+- Side-channel analizi yapın
+- Uzman kriptograf gözden geçirmesi alın
+
+## 📄 Lisans
+
+MIT License - Detaylar için [LICENSE](LICENSE) dosyasına bakın.
+
+## 👤 Yazar
+
+**Dante** - Quantum-Safe Kriptografi Araştırmacısı
+
+---
+
+⭐ **Bu projeyi beğendiyseniz yıldız verin!**
