@@ -1,0 +1,114 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in the qscg library.
+title: "[Bug]: "
+labels: ["bug", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a bug! Please fill out the sections below to help us diagnose and fix the issue as quickly as possible.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: Provide a clear and concise description of the bug.
+      placeholder: A short description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Provide detailed steps to reproduce the bug.
+      placeholder: |
+        1. Import '...'
+        2. Call function '...' with parameters '...'
+        3. Observe error '...'
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: Describe what you expected to happen.
+      placeholder: The function should return a valid keypair without raising an exception.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: Describe what actually happened. Include full error messages, tracebacks, or unexpected outputs.
+      placeholder: |
+        A `ValueError` was raised with the following traceback:
+        ```
+        Traceback (most recent call last):
+          ...
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: |
+        Provide details about your environment. Run `python -m qscg --version` or `pip show qscg` if available.
+      placeholder: |
+        - OS: (e.g., Ubuntu 22.04, macOS 14, Windows 11)
+        - Python version: (e.g., 3.11.4)
+        - qscg version: (e.g., 0.2.1)
+        - Relevant dependency versions: (e.g., cryptography 42.0.0, numpy 1.26.0)
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs & Screenshots
+      description: If applicable, paste any relevant log output or attach screenshots.
+      placeholder: Paste logs here or drag-and-drop screenshots.
+      render: shell
+    validations:
+      required: false
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this bug?
+      options:
+        - Critical — crashes, data corruption, or security vulnerability
+        - High — major functionality broken, no workaround
+        - Medium — partial functionality affected, workaround exists
+        - Low — minor issue, cosmetic, or documentation
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: What priority would you assign?
+      options:
+        - P0 — Blocking release or critical security fix
+        - P1 — Important fix needed soon
+        - P2 — Nice to have, non-urgent
+        - P3 — Trivial, can be deferred
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](/CODE_OF_CONDUCT.md).
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true

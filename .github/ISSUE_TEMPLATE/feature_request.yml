@@ -1,0 +1,86 @@
+name: Feature Request
+description: Suggest a new feature, algorithm, or improvement for qscg.
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature! We appreciate your input in making qscg better. Please describe your idea in detail so we can evaluate it effectively.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: Provide a clear and concise description of the feature you'd like to see.
+      placeholder: Support for NIST FIPS 203 ML-KEM-1024 parameter set with optimized AVX2 implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Use Case
+      description: Describe the problem or use case that motivated this request. Why is this feature needed?
+      placeholder: |
+        When integrating qscg into a high-throughput VPN gateway, the current Python implementation 
+        of ML-KEM-768 creates a bottleneck. A native-optimized or AVX2-accelerated variant would 
+        significantly improve key encapsulation/decapsulation performance.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your proposed solution or ideal implementation.
+      placeholder: |
+        Add an optional `backend` parameter to the `MLKEM` class that allows selecting between:
+        - `"pure_python"` (default, current behavior)
+        - `"avx2"` (AVX2-optimized backend via C extension)
+        - `"openssl"` (delegation to OpenSSL 3.4+ provider)
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions or workarounds? Why were they insufficient?
+      placeholder: |
+        - Using the `pqcrypto` library instead, but it lacks FIPS 203 compliance.
+        - Cythonizing the existing code manually, but this is brittle and hard to maintain.
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any other context, references to standards (e.g., NIST IRs), or links to related discussions.
+      placeholder: |
+        - NIST FIPS 203 final version: https://csrc.nist.gov/pubs/fips/203/final
+        - Related discussion: #42
+        - Benchmark data: [attach file or link to gist]
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: willingness
+    attributes:
+      label: Contribution
+      description: Are you willing to contribute this feature?
+      options:
+        - label: I am willing to submit a pull request for this feature
+          required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](/CODE_OF_CONDUCT.md).
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
