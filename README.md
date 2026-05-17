@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/mcemkoca/qscg/main/diagrams/qscg_logo.png" alt="QSCG Logo" width="180">
+<img src="https://raw.githubusercontent.com/mcemkoca/qscg/main/logo.png" alt="QSCG Logo" width="180">
 
 # QSCG &mdash; Quantum-Safe Cryptography GitHub Repository
 
