@@ -1,10 +1,54 @@
 """
-Quantum-Safe Kriptografi - Kafes (Lattice) Tabanlı
-NIST FIPS 203/204/205 Uyumlu
+QSCG - Quantum-Safe Cryptography GitHub Repository
+
+Professional post-quantum cryptographic toolkit.
+Implements NIST FIPS 203 (ML-KEM), FIPS 204 (ML-DSA),
+FIPS 205 (SLH-DSA) with AES-256-GCM hybrid layer.
+
+Usage:
+    >>> from qscg import MLKEM, MLDSA, AES256GCM
+    >>> kem = MLKEM(level=SecurityLevel.LEVEL_3)
+    >>> kp = kem.keygen()
 """
 
-from .lattice_crypto import MLKEM, MLDSA, LatticeParameters, SecurityLevel
+__version__ = "2.2.0"
+__author__ = "Mehmet Cem Koca (mcemkoca)"
+__license__ = "MIT"
+__all__ = [
+    "SecurityLevel",
+    "LatticeParameters",
+    "PolynomialRing",
+    "ModuleLattice",
+    "MLKEM",
+    "MLKEMKeyPair",
+    "MLKEMCiphertext",
+    "MLDSA",
+    "MLDSASignature",
+    "CryptoComparison",
+    "LWEProblems",
+    "QuantumResistanceAnalysis",
+    "NISTPQCStandards2026",
+    "HarvestNowDecryptLater",
+    "HybridCryptography",
+    "utils",
+]
 
-__version__ = "1.0.0"
-__author__ = "Dante"
-__all__ = ["MLKEM", "MLDSA", "LatticeParameters", "SecurityLevel"]
+# Package-level imports (lazy to avoid circular imports)
+def _get_mlkem():
+    from .lattice_crypto import MLKEM
+    return MLKEM
+
+def _get_mldsa():
+    from .lattice_crypto import MLDSA
+    return MLDSA
+
+# Version info
+def version_info():
+    """Return detailed version information."""
+    return {
+        "version": __version__,
+        "author": __author__,
+        "license": __license__,
+        "nist_standards": ["FIPS 203", "FIPS 204", "FIPS 205"],
+        "algorithms": ["ML-KEM", "ML-DSA", "SLH-DSA", "AES-256-GCM"],
+    }

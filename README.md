@@ -169,114 +169,135 @@ python src/quantum_safe_gui.py
 
 ---
 
-## :computer: Usage
+## 🚀 Quick Start
 
-### ML-KEM Key Encapsulation (FIPS 203)
-
-```python
-from qscg import MLKEM
-
-# Initialize ML-KEM-768 (recommended security level)
-kem = MLKEM(security_level=768)
-
-# Key Generation
-public_key, secret_key = kem.keygen()
-
-# Encapsulation (sender side)
-ciphertext, shared_secret_enc = kem.encaps(public_key)
-
-# Decapsulation (receiver side)
-shared_secret_dec = kem.decaps(ciphertext, secret_key)
-
-# Verify both parties have the same shared secret
-assert shared_secret_enc == shared_secret_dec
-print(f"Shared secret established: {shared_secret_enc.hex()[:32]}...")
+### Installation
+```bash
+pip install -r requirements.txt
 ```
 
-### ML-DSA Digital Signatures (FIPS 204)
-
-```python
-from qscg import MLDSA
-import os
-
-# Initialize ML-DSA-65 (recommended security level)
-dsa = MLDSA(security_level=65)
-
-# Key Generation
-public_key, secret_key = dsa.keygen()
-
-# Sign a message
-message = b"This is a quantum-safe signed message."
-signature = dsa.sign(message, secret_key)
-
-# Verify the signature
-is_valid = dsa.verify(message, signature, public_key)
-
-if is_valid:
-    print(":white_check_mark: Signature is valid and quantum-safe!")
-else:
-    print(":x: Signature verification failed!")
-```
-
-### SLH-DSA Stateless Hash Signatures (FIPS 205)
-
-```python
-from qscg import SLHDSA
-
-# Initialize SLH-DSA with SHA2-128s parameters
-slh = SLHDSA(parameter_set="sha2-128s")
-
-# Key Generation (note: larger keys than ML-DSA)
-public_key, secret_key = slh.keygen()
-
-# Sign a message
-message = b"Hash-based signatures are provably secure."
-signature = slh.sign(message, secret_key)
-
-# Verify
-is_valid = slh.verify(message, signature, public_key)
-print(f"SLH-DSA signature valid: {is_valid}")
-```
-
-### AES-256-GCM Hybrid Encryption
-
-```python
-from qscg import MLKEM, AESGCMHybrid
-import os
-
-# Step 1: Establish shared secret with ML-KEM
-kem = MLKEM(security_level=768)
-pk, sk = kem.keygen()
-ciphertext, shared_secret = kem.encaps(pk)
-
-# Step 2: Use shared secret for AES-256-GCM encryption
-hybrid = AESGCMHybrid(shared_secret)
-
-# Encrypt data
-plaintext = b"Sensitive data requiring quantum-safe protection"
-associated_data = b"metadata"
-encrypted = hybrid.encrypt(plaintext, associated_data)
-
-# Decrypt data
-decrypted = hybrid.decrypt(encrypted, associated_data)
-assert plaintext == decrypted
-print("Hybrid encryption successful!")
-```
-
-### GUI Application
-
-For interactive use, launch the bundled GUI:
+### CLI Usage
 
 ```bash
-python src/quantum_safe_gui.py
+# Show help
+python qscg_v2_1_final.py --help
+
+# Show version
+python qscg_v2_1_final.py --version
+
+# Run all tests
+python qscg_v2_1_final.py --test
+
+# ML-KEM key generation
+python qscg_v2_1_final.py --kem 3 --encapsulate
+
+# ML-DSA signing
+python qscg_v2_1_final.py --dsa 3 --sign "My quantum-safe message"
+
+# SLH-DSA signing
+python qscg_v2_1_final.py --slh 3 --slh-sign "Important document"
+
+# AES-256-GCM encryption
+python qscg_v2_1_final.py --aes --encrypt "Secret data"
+
+# Analysis
+python qscg_v2_1_final.py --analysis
+python qscg_v2_1_final.py --nist
+python qscg_v2_1_final.py --hndl
 ```
 
-The GUI provides:
-- Visual key generation for all algorithm types
-- File encryption/decryption with drag-and-drop
-- Signature generation and verification
-- Benchmarking suite with performance graphs
-- Security level comparison visualizations
+### Python API Usage
+
+#### 1. ML-KEM Key Encapsulation (FIPS 203)
+```python
+from qscg_v2_1_final import MLKEM, SecurityLevel, setup_logging
+
+setup_logging()
+
+# Generate keys at different security levels
+for level in [SecurityLevel.LEVEL_1, SecurityLevel.LEVEL_3, SecurityLevel.LEVEL_5]:
+    kem = MLKEM(level=level)
+    kp = kem.keygen()
+    ct, secret = kem.encapsulate(kp.public_key)
+    recovered = kem.decapsulate(kp.secret_key, ct.ciphertext)
+    assert secret == recovered
+    print(f"Level {level.value}: OK (PK={len(kp.public_key)}B)")
+```
+
+#### 2. ML-DSA Digital Signature (FIPS 204)
+```python
+from qscg_v2_1_final import MLDSA, SecurityLevel
+
+dsa = MLDSA(level=SecurityLevel.LEVEL_3)
+keys = dsa.keygen()
+
+message = b"Quantum-safe document"
+signature = dsa.sign(keys.secret_key, message)
+
+valid = dsa.verify(keys.public_key, message, signature.signature)
+assert valid, "Signature verification failed"
+
+# Test tamper resistance
+invalid = dsa.verify(keys.public_key, b"tampered", signature.signature)
+assert not invalid, "Should reject tampered message"
+```
+
+#### 3. SLH-DSA Hash-Based Signature (FIPS 205)
+```python
+from qscg_v2_1_final import SLHDSA, SecurityLevel
+
+slh = SLHDSA(level=SecurityLevel.LEVEL_3)
+pk, sk = slh.keygen()
+
+message = b"Long-term secure document"
+sig = slh.sign(sk, message)
+
+valid = slh.verify(pk, message, sig)
+assert valid, "SLH-DSA verification failed"
+print(f"Signature size: {len(sig)} bytes")
+```
+
+#### 4. AES-256-GCM Hybrid Encryption
+```python
+from qscg_v2_1_final import AES256GCM
+
+# Generate or provide key
+key = AES256GCM.generate_key()
+aes = AES256GCM(key)
+
+# Encrypt
+plaintext = b"Sensitive data"
+ciphertext = aes.encrypt(plaintext)
+print(f"Encrypted: {len(ciphertext)} bytes")
+
+# Decrypt
+decrypted = aes.decrypt(ciphertext)
+assert decrypted == plaintext
+print(f"Decrypted successfully: {decrypted.decode()}")
+```
+
+#### 5. Combined Hybrid Usage
+```python
+from qscg_v2_1_final import MLKEM, AES256GCM, SecurityLevel
+
+# Step 1: Generate ephemeral PQC key pair
+kem = MLKEM(level=SecurityLevel.LEVEL_3)
+kp = kem.keygen()
+
+# Step 2: Encapsulate shared secret
+ct, shared_secret = kem.encapsulate(kp.public_key)
+
+# Step 3: Use shared secret as AES key
+aes = AES256GCM(shared_secret)
+message = b"Classified: Quantum attack plan"
+encrypted = aes.encrypt(message)
+
+# Step 4: Decrypt using decapsulated secret
+recovered_secret = kem.decapsulate(kp.secret_key, ct.ciphertext)
+aes2 = AES256GCM(recovered_secret)
+decrypted = aes2.decrypt(encrypted)
+assert decrypted == message
+```
 
 ---
 
