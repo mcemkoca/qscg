@@ -1,0 +1,29 @@
+# Wiki Auto-Publish
+# Syncs wiki/ docs to GitHub Wiki when changes are pushed to main
+# Requires: WIKI_TOKEN secret with repo scope
+
+name: Publish Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/wiki/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Publish to GitHub Wiki
+        uses: Andrew-Chen-Wang/github-wiki-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: docs/wiki
+          strategy: clone

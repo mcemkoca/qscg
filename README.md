@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/mcemkoca/qscg/main/diagrams/qscg_logo.png" alt="QSCG Logo" width="180">
+<img src="https://raw.githubusercontent.com/mcemkoca/qscg/main/logo.png" alt="QSCG Logo" width="180">
 
 # QSCG &mdash; Quantum-Safe Cryptography GitHub Repository
 
@@ -621,7 +621,22 @@ This project builds upon the groundbreaking work of many researchers and organiz
 | **GitHub Issues** | [github.com/mcemkoca/qscg/issues](https://github.com/mcemkoca/qscg/issues) | Bug reports, feature requests |
 | **GitHub Discussions** | [github.com/mcemkoca/qscg/discussions](https://github.com/mcemkoca/qscg/discussions) | Q&A, ideas, community chat |
 | **Security Advisory** | [Private Reporting](https://github.com/mcemkoca/qscg/security/advisories) | Vulnerability reports |
-| **Author** | [@mcemkoca](https://github.com/mcemkoca) | Direct contact |
+| **Wiki** | [github.com/mcemkoca/qscg/wiki](https://github.com/mcemkoca/qscg/wiki) | Full documentation |
+| **Author** | [@mcemkoca](https://github.com/mcemkoca) — M.Cem Koca {Deuterium12} | Direct contact |
+
+---
+
+## 📚 Wiki Documentation
+
+Comprehensive documentation is available in the [GitHub Wiki](https://github.com/mcemkoca/qscg/wiki) and [`docs/wiki`](docs/wiki/) directory:
+
+| Wiki Page | Description |
+|:----------|:------------|
+| **[Home](docs/wiki/Home.md)** | Project overview, quick start, navigation |
+| **[Algorithms & Standards](docs/wiki/Algorithms-and-Standards.md)** | ML-KEM, ML-DSA, SLH-DSA deep dives |
+| **[API Documentation](docs/wiki/API-Documentation.md)** | Complete Python API reference with examples |
+| **[CLI Usage](docs/wiki/CLI-Usage.md)** | Command-line interface guide |
+| **[Quantum Threat Analysis](docs/wiki/Quantum-Threat-Analysis.md)** | HNDL, migration timeline, sector guides |
 
 ---
 
@@ -629,6 +644,6 @@ This project builds upon the groundbreaking work of many researchers and organiz
 
 **:star: Star this repository if it helps you secure your applications against quantum threats!**
 
-**Built with :heart: by [Mehmet Cem Koca](https://github.com/mcemkoca)**
+**Built with ❤️ by [M.Cem Koca {Deuterium12}](https://github.com/mcemkoca)**
 
 </div>
