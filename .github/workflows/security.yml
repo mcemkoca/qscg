@@ -14,6 +14,9 @@ permissions:
   contents: read
   security-events: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   codeql:
     name: CodeQL Analysis
@@ -38,7 +41,8 @@ jobs:
       - name: Run Bandit
         run: |
           bandit -r . -f json -o bandit-report.json || true
-          bandit -r . -ll || true
+          bandit -r . -ll
+        continue-on-error: true
 
   pip-audit:
     name: Dependency Audit
@@ -51,4 +55,5 @@ jobs:
       - name: Install pip-audit
         run: pip install pip-audit
       - name: Run pip-audit
-        run: pip-audit . || true
+        run: pip-audit .
+        continue-on-error: true
