@@ -32,6 +32,7 @@ jobs:
             echo "No requirements.txt found, skipping..."
           fi
           pip install pytest pytest-cov
+        continue-on-error: true
       - name: Run tests
         run: |
           if [ -d "tests" ] && ls tests/test_*.py 1>/dev/null 2>&1; then
