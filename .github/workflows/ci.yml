@@ -7,6 +7,9 @@ on:
     branches: [main, develop]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   test:
     name: Test (Python ${{ matrix.python }})
@@ -28,21 +31,31 @@ jobs:
       - name: Run tests
         run: |
           if [ -d "tests" ] && ls tests/test_*.py 1>/dev/null 2>&1; then
-            pytest tests/ -v --tb=short --cov=. --cov-report=xml --cov-fail-under=0 || true
+            pytest tests/ -v --tb=short --cov=. --cov-report=xml --cov-fail-under=0
           else
             echo "No tests found - checking Python syntax..."
             python -m py_compile qscg_v2_1_final.py
             echo "Syntax OK"
           fi
       - name: Check imports
-        run: python -c "import qscg_v2_1_final; print('Module loaded OK')" || true
+        run: python -c "import qscg_v2_1_final; print('Module loaded OK')"
+        continue-on-error: true
       - name: Test CLI
-        run: python qscg_v2_1_final.py --version || python qscg_v2_1_final.py -h || true
+        run: python qscg_v2_1_final.py --version
+        continue-on-error: true
+      - name: Verify coverage.xml exists
+        run: |
+          if [ -f "coverage.xml" ]; then
+            echo "coverage.xml generated ($(wc -c < coverage.xml) bytes)"
+          else
+            echo "No coverage.xml generated (tests may not have run)"
+          fi
       - name: Upload coverage
         uses: codecov/codecov-action@v4
-        if: hashFiles('coverage.xml') != ''
+        if: ${{ hashFiles('coverage.xml') != '' && env.CODECOV_TOKEN != '' }}
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        continue-on-error: true
