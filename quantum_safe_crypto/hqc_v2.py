@@ -127,15 +127,15 @@ class HQC_KEM:
         u = r1 ^ r2h
 
         # Compute v = m*G + s*r2 + e
-        # Repetition code: each message bit is repeated bits_per_byte times
-        bits_per_byte = max(1, self.n // (self.k * 8))
+        # Use real HQC concatenated code: RS + RM
+        from quantum_safe_crypto.reed_muller import HQCCode
+        hqc_code = HQCCode(self.level)
+        
+        # Encode message to bit vector
+        m_encoded = hqc_code.encode(m)
         m_poly = GF2Poly(self.n)
-        m_bits = ''.join(format(b, '08b') for b in m)
-        for i, bit in enumerate(m_bits[:self.k * 8]):
-            for j in range(bits_per_byte):
-                pos = i * bits_per_byte + j
-                if pos < self.n:
-                    m_poly.set_bit(pos, int(bit))
+        for j in range(min(self.n, m_encoded.bit_length())):
+            m_poly.set_bit(j, (m_encoded >> j) & 1)
 
         sr2 = gf2_mul_sparse(s, r2, self.n)
         v = m_poly ^ sr2 ^ e
@@ -192,28 +192,16 @@ class HQC_KEM:
         # = m*G + x*r2 + e - r1*y
         noisy = v ^ uy
 
-        # Decode using repetition code with majority voting
-        # Each message bit is repeated n/(k*8) times in the codeword
-        bits_per_byte = self.n // (self.k * 8)
-        if bits_per_byte < 1:
-            bits_per_byte = 1
-
-        m_recovered = bytearray(self.k)
-        for byte_idx in range(self.k):
-            for bit_idx in range(8):
-                msg_bit_pos = byte_idx * 8 + bit_idx
-                code_start = msg_bit_pos * bits_per_byte
-                code_end = min(code_start + bits_per_byte, self.n)
-
-                # Count 1s in the corresponding code bits
-                ones = sum(noisy.bit(i) for i in range(code_start, code_end))
-                total = code_end - code_start
-
-                # Majority voting
-                if ones > total // 2:
-                    m_recovered[byte_idx] |= (1 << bit_idx)
-
-        m_recovered = bytes(m_recovered)
+        # Decode using real HQC concatenated code
+        from quantum_safe_crypto.reed_muller import HQCCode
+        hqc_code = HQCCode(self.level)
+        
+        # Convert noisy polynomial to integer
+        noisy_int = 0
+        for j in range(self.n):
+            noisy_int |= (noisy.bit(j) << j)
+        
+        m_recovered = hqc_code.decode(noisy_int, self.n)
 
         # Re-derive theta and re-encapsulate to verify (Fujisaki-Okamoto transform)
         theta = self._derive_theta(m_recovered, pk, salt)
@@ -233,16 +221,14 @@ class HQC_KEM:
         r2h = gf2_mul_sparse(r2_prime, h, self.n)
         u2 = r1_prime ^ r2h
 
-        m_poly = GF2Poly(self.n)
-        m_bits = ''.join(format(b, '08b') for b in m_recovered)
-        for i, bit in enumerate(m_bits[:self.k * 8]):
-            for j in range(bits_per_byte):
-                pos = i * bits_per_byte + j
-                if pos < self.n:
-                    m_poly.set_bit(pos, int(bit))
+        # Encode recovered message with HQC code
+        m_encoded2 = hqc_code.encode(m_recovered)
+        m_poly2 = GF2Poly(self.n)
+        for j in range(min(self.n, m_encoded2.bit_length())):
+            m_poly2.set_bit(j, (m_encoded2 >> j) & 1)
 
         sr2 = gf2_mul_sparse(s, r2_prime, self.n)
-        v2 = m_poly ^ sr2 ^ e_prime
+        v2 = m_poly2 ^ sr2 ^ e_prime
 
         # Verify: if (u,v) matches (u2,v2), accept; otherwise use sigma (implicit rejection)
         u_match = u.to_bytes() == u2.to_bytes()

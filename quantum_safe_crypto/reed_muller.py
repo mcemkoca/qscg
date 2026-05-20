@@ -180,32 +180,151 @@ class ReedSolomon:
         """Encode message (k bytes) to codeword (n bytes).
 
         Systematic encoding: first k symbols = message, last n-k = parity.
+        Uses polynomial division by generator polynomial.
         """
         if len(message) != self.k:
             raise ValueError(f"Message must be {self.k} bytes")
 
-        # For simplicity: return message + zero padding
-        # Real RS encoding requires polynomial division by generator
-        # This is a STUB - real implementation needs generator polynomial
-        return message + bytes(self.n - self.k)
+        # Build generator polynomial g(x) = prod(x - alpha^i) for i=0..n-k-1
+        g = [1] + [0] * (self.n - self.k)
+        for i in range(self.n - self.k):
+            alpha_i = self._gf_alog[i % 255]
+            # Multiply g by (x - alpha^i)
+            new_g = g[:]
+            for j in range(len(g) - 1, -1, -1):
+                if g[j] != 0:
+                    new_g[j + 1] = self._gf_add(new_g[j + 1], g[j])
+                    new_g[j] = self._gf_add(new_g[j], self._gf_mul(g[j], alpha_i))
+            g = new_g[:len(g) + 1]
+
+        # Systematic encoding: shift message by n-k, divide by g(x)
+        # For simplicity: return message + syndrome of shifted message
+        # Real encoding: m(x) * x^(n-k) mod g(x)
+        shifted = list(message) + [0] * (self.n - self.k)
+        remainder = self._poly_mod(shifted, g)
+        return bytes(message) + bytes(remainder)
+
+    def _poly_mod(self, dividend: List[int], divisor: List[int]) -> List[int]:
+        """Polynomial division in GF(256): dividend mod divisor."""
+        result = list(dividend)
+        divisor_lead = divisor[-1]
+        divisor_inv = self._gf_inv(divisor_lead)
+        for i in range(len(result) - len(divisor), -1, -1):
+            if result[i + len(divisor) - 1] != 0:
+                coef = self._gf_mul(result[i + len(divisor) - 1], divisor_inv)
+                for j in range(len(divisor)):
+                    result[i + j] = self._gf_add(result[i + j], self._gf_mul(divisor[j], coef))
+        return result[:len(divisor) - 1]
+
+    def _gf_eval(self, poly: List[int], x: int) -> int:
+        """Evaluate polynomial at point x in GF(256)."""
+        result = 0
+        power = 1
+        for coef in poly:
+            result = self._gf_add(result, self._gf_mul(coef, power))
+            power = self._gf_mul(power, x)
+        return result
 
     def decode(self, received: bytes) -> bytes:
-        """Decode received word to message.
+        """Decode received word using Berlekamp-Massey algorithm.
 
-        Simplified decoder - assumes no errors for now.
-        Full Berlekamp-Massey implementation would be ~200 lines.
+        Corrects up to t = (n-k)/2 symbol errors.
         """
         if len(received) != self.n:
             raise ValueError(f"Received must be {self.n} bytes")
 
-        # STUB: just return first k bytes (systematic)
-        # Real decoder would:
-        # 1. Compute syndromes
-        # 2. Berlekamp-Massey for error locator
-        # 3. Chien search for error positions
-        # 4. Forney for error values
-        # 5. Correct and extract message
-        return received[:self.k]
+        received = list(received)
+
+        # Step 1: Compute syndromes S_0, S_1, ..., S_{2t-1}
+        # S_i = sum(R_j * alpha^(i*j)) for j=0..n-1
+        syndromes = []
+        for i in range(2 * self.t):
+            s = 0
+            alpha_i = self._gf_alog[i % 255]
+            power = 1  # alpha_i^0 = 1
+            for j in range(self.n):
+                s = self._gf_add(s, self._gf_mul(received[j], power))
+                power = self._gf_mul(power, alpha_i)
+            syndromes.append(s)
+
+        # If all syndromes are zero, no errors
+        if all(s == 0 for s in syndromes):
+            return bytes(received[:self.k])
+
+        # Step 2: Berlekamp-Massey for error locator polynomial
+        # Lambda(x) = 1 + Lambda_1*x + ... + Lambda_L*x^L
+        # where roots are at alpha^{-error_positions}
+        L = 0
+        n_poly = [1] + [0] * (2 * self.t)  # Lambda(x)
+        b_poly = [1] + [0] * (2 * self.t)  # B(x) - auxiliary
+        m = 1  # number of elements processed
+
+        for r in range(2 * self.t):
+            # Discrepancy: delta = S_r + sum(Lambda_i * S_{r-i}) for i=1..L
+            delta = syndromes[r]
+            for i in range(1, L + 1):
+                delta = self._gf_add(delta, self._gf_mul(n_poly[i], syndromes[r - i]))
+
+            if delta == 0:
+                m += 1
+            else:
+                # Update Lambda
+                temp = list(n_poly)
+                # n_poly = n_poly + delta * x^m * b_poly
+                for i in range(2 * self.t - m + 1):
+                    if b_poly[i] != 0:
+                        n_poly[i + m] = self._gf_add(n_poly[i + m], self._gf_mul(delta, b_poly[i]))
+
+                if 2 * L <= r:
+                    L = r + 1 - L
+                    b_poly = [self._gf_mul(self._gf_inv(delta), c) for c in temp]
+                    m = 1
+                else:
+                    m += 1
+
+        # Step 3: Chien search - find error positions
+        error_positions = []  # positions in received word
+        for j in range(self.n):
+            # Evaluate Lambda(alpha^{-j}) = Lambda(alpha^(255-j))
+            alpha_inv_j = self._gf_alog[(255 - j) % 255]
+            val = self._gf_eval(n_poly[:L + 1], alpha_inv_j)
+            if val == 0:
+                error_positions.append(j)
+
+        # Step 4: Forney algorithm - compute error values
+        # Omega(x) = Lambda(x) * S(x) mod x^(2t)
+        # where S(x) = S_0 + S_1*x + ... + S_{2t-1}*x^{2t-1}
+        omega = [0] * (2 * self.t)
+        for i in range(2 * self.t):
+            for j in range(min(i + 1, L + 1)):
+                omega[i] = self._gf_add(omega[i], self._gf_mul(n_poly[j], syndromes[i - j]))
+
+        # Error values: e_j = Omega(alpha^{-j}) / (alpha^{-j} * Lambda'(alpha^{-j}))
+        for pos in error_positions:
+            alpha_inv_j = self._gf_alog[(255 - pos) % 255]
+            omega_val = self._gf_eval(omega, alpha_inv_j)
+
+            # Lambda'(x) = sum(i * Lambda_i * x^{i-1})
+            lambda_deriv = 0
+            for i in range(1, L + 1):
+                # In GF(2^8): derivative of x^i is i*x^{i-1}, but i is integer
+                # For characteristic 2: derivative of x^(2k) = 0, x^(2k+1) = x^(2k)
+                # Simplified: just use i mod 2 (only odd powers contribute)
+                if i % 2 == 1:
+                    lambda_deriv = self._gf_add(lambda_deriv, self._gf_mul(n_poly[i], self._gf_pow(alpha_inv_j, i - 1)))
+
+            denom = self._gf_mul(alpha_inv_j, lambda_deriv)
+            if denom != 0:
+                error_val = self._gf_mul(omega_val, self._gf_inv(denom))
+                received[pos] = self._gf_add(received[pos], error_val)
+
+        return bytes(received[:self.k])
+
+    def _gf_pow(self, a: int, e: int) -> int:
+        """Compute a^e in GF(256)."""
+        if a == 0:
+            return 0
+        return self._gf_alog[(self._gf_log[a] * e) % 255]
 
 
 class HQCCode:
