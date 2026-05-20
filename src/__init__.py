@@ -11,7 +11,7 @@ Usage:
     >>> kp = kem.keygen()
 """
 
-__version__ = "2.2.0"
+__version__ = "3.0.0"
 __author__ = "Mehmet Cem Koca (mcemkoca)"
 __license__ = "MIT"
 __all__ = [

@@ -81,6 +81,13 @@ QSCG provides a complete, ready-to-use implementation of all three NIST-approved
   - ML-DSA-44, ML-DSA-65, ML-DSA-85 parameter sets
 - :hash: **SLH-DSA (FIPS 205)** &mdash; SPHINCS+-based Stateless Hash Signatures
   - SHA2-128s, SHA2-192s, SHA2-256s variants
+- :small_blue_diamond: **HQC (NIST IR 8545)** &mdash; Code-based Key Encapsulation *(v3.0)*
+  - Hamming Quasi-Cyclic codes, 3 security levels
+- :small_orange_diamond: **FN-DSA (FIPS 206 draft)** &mdash; NTRU Lattice Compact Signatures *(v3.0)*
+  - ~666 byte signatures, floating-point FFT sampling
+- :atom_symbol: **Quantum Threat Analyzer** &mdash; 1M qubit risk assessment *(v3.0)*
+  - Mosca's Inequality, sector-specific recommendations
+- :globe_with_meridians: **Protocol Extensions** &mdash; QUIC / Signal / WireGuard PQC *(v3.0)*
 - :key: **AES-256-GCM** Hybrid Encryption for data-at-rest protection
 - :computer: **Desktop GUI Application** for interactive cryptographic operations
 - :zap: **High Performance** optimized lattice arithmetic
