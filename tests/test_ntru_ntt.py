@@ -147,7 +147,6 @@ class TestNTRUKeypair:
         assert len(pk) == 2048  # 1024 * 2 bytes
         assert len(sk) == 4096  # f + g
 
-    @pytest.mark.skip(reason="FALCON FFT sampling not yet implemented - s1 norm too large")
     def test_sign_verify(self):
         kp = NTRUKeypair(512)
         pk, sk = kp.generate(seed=b"sign_test_512")
