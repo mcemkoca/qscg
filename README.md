@@ -91,6 +91,7 @@ QSCG provides a complete, ready-to-use implementation of all three NIST-approved
 - :notebook_with_decorative_cover: **Comprehensive Documentation** with NIST spec references
 - :gear: **Modular Architecture** algorithm selection at runtime via SecurityLevel enum
 - :test_tube: **Full Test Suite** 132+ tests covering all 3 PQC algorithms
+- :atom: **Quantum Tunneling** — IBM Quantum integration, QRNG, QKD BB84, Quantum-Safe TLS
 
 ---
 
@@ -372,14 +373,19 @@ qscg/
 │       │   ├── polynomial.py     # R_q + Power2Round/Decompose
 │       │   ├── sampling.py       # SampleInBall, ExpandA/S/Mask
 │       │   └── encode.py         # BitPack, HintBitPack
-│       └── slh_dsa/              # SLH-DSA module (FIPS 205)
+│       ├── slh_dsa/              # SLH-DSA module (FIPS 205)
+│       │   ├── __init__.py
+│       │   ├── slh_dsa.py        # Main SLH-DSA class
+│       │   ├── wots.py           # WOTS+ chain hashing
+│       │   ├── fors.py           # FORS Merkle trees
+│       │   ├── xmss.py           # XMSS L-trees
+│       │   ├── hypertree.py      # d-layer Hypertree
+│       │   └── address.py        # ADRS 32-byte address
+│       └── quantum/              # Quantum Computing Integration
 │           ├── __init__.py
-│           ├── slh_dsa.py        # Main SLH-DSA class
-│           ├── wots.py           # WOTS+ chain hashing
-│           ├── fors.py           # FORS Merkle trees
-│           ├── xmss.py           # XMSS L-trees
-│           ├── hypertree.py      # d-layer Hypertree
-│           └── address.py        # ADRS 32-byte address
+│           ├── qrng.py           # Quantum Random Number Generator
+│           ├── tls_tunnel.py     # Quantum-Safe TLS Tunnel
+│           └── qkd_bb84.py       # BB84 QKD Protocol
 ├── tests/                      # Test suite
 │   ├── __init__.py
 │   ├── test_mlkem.py           # ML-KEM tests
