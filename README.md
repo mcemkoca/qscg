@@ -4,7 +4,7 @@
 
 # QSCG &mdash; Quantum-Safe Cryptography GitHub Repository
 
-**Production-grade post-quantum cryptographic toolkit implementing NIST FIPS 203/204/205 standards**
+**NIST FIPS 203/204/205 compliant post-quantum cryptography — ML-KEM, ML-DSA, SLH-DSA — v3.0.0**
 
 [![NIST FIPS 203](https://img.shields.io/badge/NIST-FIPS%20203-blue?style=flat-square&logo=gnuprivacyguard)](https://csrc.nist.gov/pubs/fips/203/final)
 [![NIST FIPS 204](https://img.shields.io/badge/NIST-FIPS%20204-blue?style=flat-square&logo=gnuprivacyguard)](https://csrc.nist.gov/pubs/fips/204/final)
@@ -24,6 +24,7 @@
 ---
 
 <p align="center">
+  <img src="https://img.shields.io/badge/version-3.0.0-blue?style=for-the-badge&logo=github&logoColor=white&label=VERSION" alt="Version: 3.0.0">
   <img src="https://img.shields.io/github/actions/workflow/status/mcemkoca/qscg/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=BUILD" alt="Build Status">
   <img src="https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge&logo=python&logoColor=white&label=PYTHON" alt="Python 3.9+">
   <img src="https://img.shields.io/github/license/mcemkoca/qscg?style=for-the-badge&logo=open-source-initiative&logoColor=white&label=LICENSE" alt="License: MIT">
@@ -73,30 +74,23 @@ QSCG provides a complete, ready-to-use implementation of all three NIST-approved
 
 ## :sparkles: Features
 
-- :lock: **ML-KEM (FIPS 203)** &mdash; CRYSTALS-Kyber-based Key Encapsulation Mechanism with 3 security levels
-  - ML-KEM-512 (NIST Level 1)
-  - ML-KEM-768 (NIST Level 3 &mdash; Recommended)
-  - ML-KEM-1024 (NIST Level 5)
-- :memo: **ML-DSA (FIPS 204)** &mdash; CRYSTALS-Dilithium-based Digital Signature Algorithm
-  - ML-DSA-44, ML-DSA-65, ML-DSA-85 parameter sets
-- :hash: **SLH-DSA (FIPS 205)** &mdash; SPHINCS+-based Stateless Hash Signatures
-  - SHA2-128s, SHA2-192s, SHA2-256s variants
-- :small_blue_diamond: **HQC (NIST IR 8545)** &mdash; Code-based Key Encapsulation *(v3.0)*
-  - Hamming Quasi-Cyclic codes, 3 security levels
-- :small_orange_diamond: **FN-DSA (FIPS 206 draft)** &mdash; NTRU Lattice Compact Signatures *(v3.0)*
-  - ~666 byte signatures, floating-point FFT sampling
-- :atom_symbol: **Quantum Threat Analyzer** &mdash; 1M qubit risk assessment *(v3.0)*
-  - Mosca's Inequality, sector-specific recommendations
-- :globe_with_meridians: **Protocol Extensions** &mdash; QUIC / Signal / WireGuard PQC *(v3.0)*
-- :key: **AES-256-GCM** Hybrid Encryption for data-at-rest protection
+- :closed_lock_with_key: **ML-KEM (FIPS 203)** &mdash; Complete NIST-compliant Key Encapsulation
+  - ML-KEM-512 (Level 1), ML-KEM-768 (Level 3), ML-KEM-1024 (Level 5)
+  - K-PKE + Fujisaki-Okamoto CCA2 transform | NTT-domain polynomial arithmetic
+- :memo: **ML-DSA (FIPS 204)** &mdash; Complete Fiat-Shamir with Aborts Digital Signatures
+  - ML-DSA-44, ML-DSA-65, ML-DSA-87 parameter sets
+  - Power2Round, rejection sampling, hint compression | Complete NTT (q=8380417)
+- :hash: **SLH-DSA (FIPS 205)** &mdash; Complete Stateless Hash-Based Signatures
+  - WOTS+ chain hashing, FORS Merkle trees, XMSS L-trees, d-layer Hypertree
+- :key: **AES-256-GCM** Hybrid Encryption layer for data-at-rest protection
 - :computer: **Desktop GUI Application** for interactive cryptographic operations
-- :zap: **High Performance** optimized lattice arithmetic
-- :shield: **Constant-Time Operations** to resist timing side-channel attacks
-- :white_check_mark: **100% NIST Compliant** parameter sets and test vectors
-- :package: **Easy Integration** via clean Python API
-- :notebook_with_decorative_cover: **Comprehensive Documentation** with examples
-- :gear: **Modular Architecture** allowing algorithm selection at runtime
-- :mag: **Built-in Benchmarking** for performance measurement
+- :zap: **High Performance** Incomplete NTT (7-layer) + Complete NTT (8-layer), Montgomery form
+- :shield: **Constant-Time Operations** branch-free comparison, timing-safe select
+- :white_check_mark: **NIST Compliant** domain-separated hash functions (G, H, J, KDF, PRF)
+- :package: **Professional Package Structure** `src/qscg/` with 4 modules, 24 files
+- :notebook_with_decorative_cover: **Comprehensive Documentation** with NIST spec references
+- :gear: **Modular Architecture** algorithm selection at runtime via SecurityLevel enum
+- :test_tube: **Full Test Suite** 132+ tests covering all 3 PQC algorithms
 
 ---
 
@@ -190,7 +184,7 @@ pip install -r requirements.txt
 python qscg_v2_1_final.py --help
 
 # Show version
-python qscg_v2_1_final.py --version
+python -c "from qscg.common.constants import __version__; print(__version__)"
 
 # Run all tests
 python qscg_v2_1_final.py --test
@@ -215,53 +209,73 @@ python qscg_v2_1_final.py --hndl
 
 ### Python API Usage
 
-#### 1. ML-KEM Key Encapsulation (FIPS 203)
+#### 1. ML-KEM Key Encapsulation (FIPS 203) — v3.0.0
 ```python
-from qscg_v2_1_final import MLKEM, SecurityLevel, setup_logging
+from qscg.ml_kem.ml_kem import MLKEM
+from qscg.common.constants import SecurityLevel
 
-setup_logging()
+# Generate keys and encapsulate at Level 3 (recommended)
+kem = MLKEM(level=SecurityLevel.LEVEL_3)
+ek, dk = kem.KeyGen()
 
-# Generate keys at different security levels
-for level in [SecurityLevel.LEVEL_1, SecurityLevel.LEVEL_3, SecurityLevel.LEVEL_5]:
-    kem = MLKEM(level=level)
-    kp = kem.keygen()
-    ct, secret = kem.encapsulate(kp.public_key)
-    recovered = kem.decapsulate(kp.secret_key, ct.ciphertext)
-    assert secret == recovered
-    print(f"Level {level.value}: OK (PK={len(kp.public_key)}B)")
+# Encapsulate — produces shared secret + ciphertext
+ciphertext, shared_secret = kem.Encaps(ek)
+print(f"Ciphertext: {len(ciphertext)} bytes")
+print(f"Shared Secret: {shared_secret.hex()[:32]}...")
+
+# Decapsulate — recover shared secret
+recovered = kem.Decaps(dk, ciphertext)
+assert shared_secret == recovered, "Decapsulation failed!"
+print("ML-KEM roundtrip: OK")
 ```
 
-#### 2. ML-DSA Digital Signature (FIPS 204)
+#### 2. ML-DSA Digital Signature (FIPS 204) — v3.0.0
 ```python
-from qscg_v2_1_final import MLDSA, SecurityLevel
+from qscg.ml_dsa.ml_dsa import MLDSA
+from qscg.common.constants import SecurityLevel
 
+# Sign at Level 3 (recommended)
 dsa = MLDSA(level=SecurityLevel.LEVEL_3)
-keys = dsa.keygen()
+pk, sk = dsa.keygen()
+print(f"Public Key: {len(pk)} bytes")
+print(f"Secret Key: {len(sk)} bytes")
 
+# Sign
 message = b"Quantum-safe document"
-signature = dsa.sign(keys.secret_key, message)
+signature = dsa.sign(sk, message)
+print(f"Signature: {len(signature)} bytes")
 
-valid = dsa.verify(keys.public_key, message, signature.signature)
-assert valid, "Signature verification failed"
+# Verify
+valid = dsa.verify(pk, message, signature)
+assert valid, "Signature verification failed!"
+print("ML-DSA verify: OK")
 
-# Test tamper resistance
-invalid = dsa.verify(keys.public_key, b"tampered", signature.signature)
-assert not invalid, "Should reject tampered message"
+# Tamper resistance
+invalid = dsa.verify(pk, b"tampered message", signature)
+assert not invalid, "Should reject tampered message!"
+print("Tamper resistance: OK")
 ```
 
-#### 3. SLH-DSA Hash-Based Signature (FIPS 205)
+#### 3. SLH-DSA Hash-Based Signature (FIPS 205) — v3.0.0
 ```python
-from qscg_v2_1_final import SLHDSA, SecurityLevel
+from qscg.slh_dsa.slh_dsa import SLHDSA
+from qscg.common.constants import SecurityLevel
 
-slh = SLHDSA(level=SecurityLevel.LEVEL_3)
+# Sign at Level 1 (smallest signatures)
+slh = SLHDSA(level=SecurityLevel.LEVEL_1)
 pk, sk = slh.keygen()
+print(f"Public Key: {len(pk)} bytes")
+print(f"Secret Key: {len(sk)} bytes")
 
+# Sign
 message = b"Long-term secure document"
-sig = slh.sign(sk, message)
+sig = slh.sign(message, sk)
+print(f"Signature: {len(sig)} bytes")
 
-valid = slh.verify(pk, message, sig)
-assert valid, "SLH-DSA verification failed"
-print(f"Signature size: {len(sig)} bytes")
+# Verify
+valid = slh.verify(message, sig, pk)
+assert valid, "SLH-DSA verification failed!"
+print("SLH-DSA verify: OK")
 ```
 
 #### 4. AES-256-GCM Hybrid Encryption
@@ -335,18 +349,43 @@ qscg/
 │   ├── api/                  # API reference
 │   ├── examples/             # Code examples
 │   └── tutorials/            # Step-by-step guides
-├── src/                      # Source code
+├── src/
+│   └── qscg/                   # Main package (v3.0.0)
+│       ├── __init__.py
+│       ├── common/               # Core utilities
+│       │   ├── __init__.py
+│       │   ├── constants.py      # NIST parameters
+│       │   ├── hashing.py        # Domain-separated hash (G, H, J, PRF)
+│       │   └── utilities.py      # Modular arithmetic
+│       ├── ml_kem/               # ML-KEM module (FIPS 203)
+│       │   ├── __init__.py
+│       │   ├── k_pke.py          # K-PKE (KeyGen/Encrypt/Decrypt)
+│       │   ├── ml_kem.py         # Fujisaki-Okamoto CCA2 wrapper
+│       │   ├── ntt.py            # Incomplete NTT (q=3329)
+│       │   ├── polynomial.py     # R_q ring + PolyVector
+│       │   ├── sampling.py       # CBD, Parse, SampleNTT
+│       │   └── encode.py         # ByteEncode, Compress
+│       ├── ml_dsa/               # ML-DSA module (FIPS 204)
+│       │   ├── __init__.py
+│       │   ├── ml_dsa.py         # Fiat-Shamir with Aborts
+│       │   ├── ntt.py            # Complete NTT (q=8380417)
+│       │   ├── polynomial.py     # R_q + Power2Round/Decompose
+│       │   ├── sampling.py       # SampleInBall, ExpandA/S/Mask
+│       │   └── encode.py         # BitPack, HintBitPack
+│       └── slh_dsa/              # SLH-DSA module (FIPS 205)
+│           ├── __init__.py
+│           ├── slh_dsa.py        # Main SLH-DSA class
+│           ├── wots.py           # WOTS+ chain hashing
+│           ├── fors.py           # FORS Merkle trees
+│           ├── xmss.py           # XMSS L-trees
+│           ├── hypertree.py      # d-layer Hypertree
+│           └── address.py        # ADRS 32-byte address
+├── tests/                      # Test suite
 │   ├── __init__.py
-│   ├── lattice_crypto.py     # Lattice-based primitives
-│   ├── quantum_safe_gui.py   # Desktop GUI application
-│   └── utils.py              # Utility functions
-├── tests/                    # Test suite
-│   ├── __init__.py
-│   ├── test_mlkem.py         # ML-KEM tests
-│   ├── test_mldsa.py         # ML-DSA tests
-│   ├── test_slh_dsa.py       # SLH-DSA tests
-│   ├── test_aes_gcm.py       # AES-GCM tests
-│   └── test_kat.py           # Known Answer Tests (NIST vectors)
+│   ├── test_mlkem.py           # ML-KEM tests
+│   ├── test_mldsa.py           # ML-DSA tests
+│   ├── test_slh_dsa.py         # SLH-DSA tests
+│   └── test_kat.py             # NIST Known Answer Tests
 ├── qscg_v2_1_final.py        # Main CLI entry point
 ├── LICENSE                   # MIT License
 ├── mkdocs.yml                # Documentation config
