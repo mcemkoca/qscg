@@ -56,8 +56,12 @@ N: int = MLDSA_N
 
 # Pre-computed constant for decomposition: 2*GAMMA2 must divide (Q-1)
 # GAMMA2 values from MLDSA_PARAMS: 95 (Level 2), 112 (Levels 3/5)
-_GAMMA2_VALUES: set[int] = {95, 112}
-"""Valid gamma2 values for ML-DSA decomposition."""
+_GAMMA2_VALUES: set[int] = {95232, 261888}
+"""Valid gamma2 values for ML-DSA decomposition.
+
+Per FIPS 204, gamma2 is either (q-1)/88 = 95232 (ML-DSA-44)
+or (q-1)/32 = 261888 (ML-DSA-65 and ML-DSA-87).
+"""
 
 
 def _make_positive(c: int) -> int:

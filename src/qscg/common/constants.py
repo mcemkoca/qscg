@@ -86,6 +86,14 @@ MLDSA_BETA: dict = {44: 78, 65: 196, 87: 120}
 MLDSA_OMEGA: dict = {44: 80, 65: 80, 87: 128}
 """Max number of 1s in the hint polynomial."""
 
+# Full parameter sets (FIPS 204, Table 1)
+MLDSA_PARAMS = {
+    44: {"k": 4, "l": 4, "eta": 2, "tau": 39, "gamma1": 2**17, "gamma2": 95232, "omega": 80, "beta": 78},
+    65: {"k": 6, "l": 5, "eta": 4, "tau": 49, "gamma1": 2**19, "gamma2": 261888, "omega": 80, "beta": 196},
+    87: {"k": 8, "l": 7, "eta": 2, "tau": 60, "gamma1": 2**19, "gamma2": 261888, "omega": 128, "beta": 120},
+}
+"""ML-DSA parameter sets keyed by parameter set identifier (44, 65, 87)."""
+
 # ---------------------------------------------------------------------------
 # SLH-DSA constants (FIPS 205)
 # ---------------------------------------------------------------------------
