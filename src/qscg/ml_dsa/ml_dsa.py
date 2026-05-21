@@ -317,10 +317,11 @@ def MLDSA_KeyGen(level: SecurityLevel) -> Tuple[bytes, bytes]:
     s2_packed = b"".join(
         encode.BitPack(c, eta, eta) for c in s2_coeffs
     )
-    t0_lo = (1 << (d - 1)) - 1
-    t0_hi = 1 << (d - 1)
+    # t0 from Power2Round is in [-(2^(d-1)), 2^(d-1)-1]
+    # Use symmetric bounds to avoid overflow
+    t0_bound = 1 << (d - 1)
     t0_packed = b"".join(
-        encode.BitPack(c, t0_lo, t0_hi) for c in t0_coeffs
+        encode.BitPack(c, t0_bound, t0_bound) for c in t0_coeffs
     )
     sk = rho + K + tr + s1_packed + s2_packed + t0_packed
 
@@ -426,12 +427,11 @@ def MLDSA_Sign(
         s2_polys.append(Polynomial(coeffs))
 
     t0_polys: List[Polynomial] = []
-    t0_lo = (1 << (d - 1)) - 1
-    t0_hi = 1 << (d - 1)
+    t0_bound = 1 << (d - 1)
     for i in range(k):
         start = i * t0_poly_bytes
         end = start + t0_poly_bytes
-        coeffs = encode.BitUnpack(t0_packed[start:end], t0_lo, t0_hi)
+        coeffs = encode.BitUnpack(t0_packed[start:end], t0_bound, t0_bound)
         t0_polys.append(Polynomial(coeffs))
 
     # ------------------------------------------------------------------
@@ -657,7 +657,7 @@ def MLDSA_Verify(
     for j in range(l):
         start = j * z_poly_bytes
         end = start + z_poly_bytes
-        z_c = encode.BitUnpack(z_packed[start:end], gamma1 - 1, gamma1 - 1)
+        z_c = encode.BitUnpack(z_packed[start:end], gamma1 - 1, gamma1)
         z_polys.append(Polynomial(z_c))
 
     # Decode t1 and scale by 2^d
