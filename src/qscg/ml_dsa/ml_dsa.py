@@ -400,7 +400,6 @@ class MLDSA:
             # Check ||z||∞ < gamma1 - beta
             z_norm = z.infinity_norm()
             if z_norm >= self.gamma1 - self.beta:
-                reject_counts["z"] += 1
                 kappa += 1
                 continue
 
@@ -414,7 +413,6 @@ class MLDSA:
 
             # Check ||r0||∞ < gamma2 - beta
             if r0_norm >= self.gamma2 - self.beta:
-                reject_counts["r0"] += 1
                 kappa += 1
                 continue
 
@@ -430,14 +428,12 @@ class MLDSA:
 
             # Check ||c·t0||∞ < gamma2
             if ct0_norm >= self.gamma2:
-                reject_counts["ct0"] += 1
                 kappa += 1
                 continue
 
             # Check hint count
             hint_count = sum(sum(h_poly) for h_poly in h)
             if hint_count > self.omega:
-                reject_counts["hint"] += 1
                 kappa += 1
                 continue
 
@@ -505,7 +501,6 @@ class MLDSA:
                 ct1_poly = c * scaled
                 ct1_scaled.append(ct1_poly)
             Az_minus_ct1 = PolyVector([Az.polys[i] - ct1_scaled[i] for i in range(self.k)])
-            print(f"DEBUG verify: Az-ct1 poly0 inf_norm={Az_minus_ct1.polys[0].infinity_norm()}")
 
             # Compute w1' = UseHint(h, Az - ct1·2^d, 2*gamma2)
             w1_prime_polys = []
