@@ -4,9 +4,40 @@ This module defines shared constants used across ML-KEM (FIPS 203),
 ML-DSA (FIPS 204), and SLH-DSA (FIPS 205) implementations.
 """
 
+from enum import Enum
+
 # ---------------------------------------------------------------------------
 # ML-KEM constants (FIPS 203)
 # ---------------------------------------------------------------------------
+
+
+class SecurityLevel(Enum):
+    """ML-KEM security levels per FIPS 203.
+
+    Members:
+        LEVEL_1: ML-KEM-512 (NIST security category 1).
+        LEVEL_3: ML-KEM-768 (NIST security category 3).
+        LEVEL_5: ML-KEM-1024 (NIST security category 5).
+    """
+
+    LEVEL_1 = 512
+    """ML-KEM-512 — security category 1."""
+
+    LEVEL_3 = 768
+    """ML-KEM-768 — security category 3."""
+
+    LEVEL_5 = 1024
+    """ML-KEM-1024 — security category 5."""
+
+
+#: Parameter lookup table indexed by :class:`SecurityLevel`.
+#: Each entry contains ``k``, ``eta1``, ``eta2``, ``du``, ``dv``.
+MLKEM_PARAMS = {
+    SecurityLevel.LEVEL_1: {"k": 2, "eta1": 3, "eta2": 2, "du": 10, "dv": 4},
+    SecurityLevel.LEVEL_3: {"k": 3, "eta1": 2, "eta2": 2, "du": 10, "dv": 4},
+    SecurityLevel.LEVEL_5: {"k": 4, "eta1": 2, "eta2": 2, "du": 11, "dv": 5},
+}
+"""ML-KEM parameter sets (FIPS 203, Table 2)."""
 
 MLKEM_Q: int = 3329
 """Modulus for ML-KEM ring operations: q = 3329."""
