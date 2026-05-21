@@ -4,6 +4,12 @@ This module defines shared constants used across ML-KEM (FIPS 203),
 ML-DSA (FIPS 204), and SLH-DSA (FIPS 205) implementations.
 """
 
+__version__ = "3.0.0"
+"""Package version string (PEP 440)."""
+
+__author__ = "M.Cem Koca {Deuterium12}"
+__license__ = "MIT"
+
 from enum import Enum
 
 # ---------------------------------------------------------------------------
