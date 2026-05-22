@@ -995,8 +995,7 @@ if __name__ == "__main__":
     print(f"Signature Valid: {valid}")
 
     # Test Hybrid Encryption
-    print("
-" + "-" * 70)
+    print("\n" + "-" * 70)
     print("Hybrid Encryption Test")
     print("-" * 70)
 
@@ -1008,7 +1007,6 @@ if __name__ == "__main__":
     print(f"Decryption Success: {plaintext == decrypted}")
     print(f"Decrypted Message: {decrypted.decode()}")
 
-    print("
-" + "=" * 70)
+    print("\n" + "=" * 70)
     print("All tests passed successfully!")
     print("=" * 70)

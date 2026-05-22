@@ -13,10 +13,10 @@ Last Updated: 2026-05-22
 """
 
 import customtkinter as ctk
-from customtkinter import CTk, CTkFrame, CTkLabel, CTkButton, CTkEntry, 
+from customtkinter import (CTk, CTkFrame, CTkLabel, CTkButton, CTkEntry,
                          CTkTextbox, CTkProgressBar, CTkSwitch, CTkTabview,
                          CTkComboBox, CTkSlider, CTkCheckBox, CTkRadioButton,
-                         CTkScrollableFrame, CTkOptionMenu
+                         CTkScrollableFrame, CTkOptionMenu)
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import threading
