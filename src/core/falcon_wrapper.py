@@ -21,7 +21,7 @@ QSCG v4.0 - Quantum Tunneling Research
 from typing import Tuple, Optional
 import secrets
 
-from .liboqs_backend import LiboqsSIG, LIBOQS_AVAILABLE, LIBOQS_SIG_ALGORITHMS
+from liboqs_backend import LiboqsSIG, LIBOQS_AVAILABLE, LIBOQS_SIG_ALGORITHMS
 
 
 class FN_DSA:

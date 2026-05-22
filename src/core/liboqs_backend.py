@@ -10,7 +10,7 @@ Requirements:
 - liboqs installed (https://github.com/open-quantum-safe/liboqs)
 - Linux: apt install liboqs-dev
 - macOS: brew install liboqs
-- Windows: Build from source with CMake + Visual Studio
+- Windows: Prebuilt binary or build from source
 
 QSCG v4.0 - Quantum Tunneling Research
 """
@@ -19,7 +19,6 @@ import ctypes
 import os
 import sys
 from typing import Optional, Tuple, List
-from enum import Enum
 
 
 # =============================================================================
@@ -37,6 +36,9 @@ _possible_paths = [
     "/usr/local/lib/liboqs.so",     # Linux local install
     "/opt/homebrew/lib/liboqs.dylib",  # macOS Homebrew (Apple Silicon)
     "/usr/lib/liboqs.so",           # Linux system
+    # Prebuilt binary from sub-agent download
+    r"C:\Users\spqr_\.kimi_openclaw\workspace\qscg-research\liboqs-prebuilt\bin\oqs.dll",
+    r"C:\Users\spqr_\.kimi_openclaw\workspace\qscg-research\liboqs-prebuilt\bin\liboqs.dll",
     os.path.join(os.path.dirname(__file__), "..", "..", "lib", "liboqs.so"),
     os.path.join(os.path.dirname(__file__), "..", "..", "lib", "oqs.dll"),
 ]
@@ -52,7 +54,11 @@ for path in _possible_paths:
 LIBOQS_AVAILABLE = _liboqs is not None
 
 if LIBOQS_AVAILABLE:
-    # Define OQS_KEM structure (partial, key fields)
+    # OQS_STATUS type
+    _liboqs.OQS_SUCCESS = 0
+    _liboqs.OQS_ERROR = -1
+    
+    # Define minimal OQS_KEM structure (we only need length fields)
     class OQS_KEM(ctypes.Structure):
         pass
     
@@ -61,16 +67,13 @@ if LIBOQS_AVAILABLE:
         ("alg_version", ctypes.c_char_p),
         ("claimed_nist_level", ctypes.c_ubyte),
         ("ind_cca", ctypes.c_ubyte),
-        ("length_public_key", ctypes.size_t),
-        ("length_secret_key", ctypes.size_t),
-        ("length_ciphertext", ctypes.size_t),
-        ("length_shared_secret", ctypes.size_t),
-        ("keypair", ctypes.CFUNCTYPE(ctypes.c_int, ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte))),
-        ("encaps", ctypes.CFUNCTYPE(ctypes.c_int, ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte))),
-        ("decaps", ctypes.CFUNCTYPE(ctypes.c_int, ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte))),
+        ("length_public_key", ctypes.c_size_t),
+        ("length_secret_key", ctypes.c_size_t),
+        ("length_ciphertext", ctypes.c_size_t),
+        ("length_shared_secret", ctypes.c_size_t),
     ]
     
-    # Define OQS_SIG structure (partial)
+    # Define minimal OQS_SIG structure
     class OQS_SIG(ctypes.Structure):
         pass
     
@@ -78,10 +81,46 @@ if LIBOQS_AVAILABLE:
         ("method_name", ctypes.c_char_p),
         ("alg_version", ctypes.c_char_p),
         ("claimed_nist_level", ctypes.c_ubyte),
-        ("length_public_key", ctypes.size_t),
-        ("length_secret_key", ctypes.size_t),
-        ("length_signature", ctypes.size_t),
+        ("euf_cma", ctypes.c_ubyte),
+        ("length_public_key", ctypes.c_size_t),
+        ("length_secret_key", ctypes.c_size_t),
+        ("length_signature", ctypes.c_size_t),
     ]
+    
+    # Set function signatures
+    _liboqs.OQS_KEM_new.restype = ctypes.POINTER(OQS_KEM)
+    _liboqs.OQS_KEM_new.argtypes = [ctypes.c_char_p]
+    _liboqs.OQS_KEM_free.restype = None
+    _liboqs.OQS_KEM_free.argtypes = [ctypes.POINTER(OQS_KEM)]
+    _liboqs.OQS_KEM_keypair.restype = ctypes.c_int
+    _liboqs.OQS_KEM_keypair.argtypes = [ctypes.POINTER(OQS_KEM), ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte)]
+    _liboqs.OQS_KEM_encaps.restype = ctypes.c_int
+    _liboqs.OQS_KEM_encaps.argtypes = [ctypes.POINTER(OQS_KEM), ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte)]
+    _liboqs.OQS_KEM_decaps.restype = ctypes.c_int
+    _liboqs.OQS_KEM_decaps.argtypes = [ctypes.POINTER(OQS_KEM), ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte)]
+    _liboqs.OQS_KEM_alg_identifier.restype = ctypes.c_char_p
+    _liboqs.OQS_KEM_alg_identifier.argtypes = [ctypes.c_size_t]
+    _liboqs.OQS_KEM_alg_count.restype = ctypes.c_int
+    
+    _liboqs.OQS_SIG_new.restype = ctypes.POINTER(OQS_SIG)
+    _liboqs.OQS_SIG_new.argtypes = [ctypes.c_char_p]
+    _liboqs.OQS_SIG_free.restype = None
+    _liboqs.OQS_SIG_free.argtypes = [ctypes.POINTER(OQS_SIG)]
+    _liboqs.OQS_SIG_keypair.restype = ctypes.c_int
+    _liboqs.OQS_SIG_keypair.argtypes = [ctypes.POINTER(OQS_SIG), ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte)]
+    _liboqs.OQS_SIG_sign.restype = ctypes.c_int
+    _liboqs.OQS_SIG_sign.argtypes = [
+        ctypes.POINTER(OQS_SIG), ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_size_t),
+        ctypes.POINTER(ctypes.c_ubyte), ctypes.c_size_t, ctypes.POINTER(ctypes.c_ubyte)
+    ]
+    _liboqs.OQS_SIG_verify.restype = ctypes.c_int
+    _liboqs.OQS_SIG_verify.argtypes = [
+        ctypes.POINTER(OQS_SIG), ctypes.POINTER(ctypes.c_ubyte), ctypes.c_size_t,
+        ctypes.POINTER(ctypes.c_ubyte), ctypes.c_size_t, ctypes.POINTER(ctypes.c_ubyte)
+    ]
+    _liboqs.OQS_SIG_alg_identifier.restype = ctypes.c_char_p
+    _liboqs.OQS_SIG_alg_identifier.argtypes = [ctypes.c_size_t]
+    _liboqs.OQS_SIG_alg_count.restype = ctypes.c_int
 
 
 # =============================================================================
@@ -102,15 +141,13 @@ LIBOQS_KEM_ALGORITHMS = {
 }
 
 LIBOQS_SIG_ALGORITHMS = {
-    "ML-DSA-44": "Dilithium2",
-    "ML-DSA-65": "Dilithium3",
-    "ML-DSA-87": "Dilithium5",
+    "ML-DSA-44": "ML-DSA-44",
+    "ML-DSA-65": "ML-DSA-65",
+    "ML-DSA-87": "ML-DSA-87",
     "FN-DSA-512": "Falcon-512",
     "FN-DSA-1024": "Falcon-1024",
-    "SLH-DSA-SHA2-128s": "SPHINCS+-SHA256-128s-simple",
-    "SLH-DSA-SHA2-128f": "SPHINCS+-SHA256-128f-simple",
-    "Picnic-L1-FS": "Picnic-L1-FS",
-    "Rainbow-Ia": "Rainbow-Ia",
+    "SLH-DSA-SHA2-128s": "SPHINCS+-SHA2-128s-simple",
+    "SLH-DSA-SHA2-128f": "SPHINCS+-SHA2-128f-simple",
 }
 
 
@@ -122,18 +159,13 @@ class LiboqsKEM:
     """High-performance KEM via liboqs ctypes."""
     
     def __init__(self, algorithm: str = "Kyber768"):
-        """
-        Initialize liboqs KEM.
-        
-        Args:
-            algorithm: liboqs algorithm name (e.g., "Kyber768", "Falcon-512")
-        """
+        """Initialize liboqs KEM."""
         if not LIBOQS_AVAILABLE:
             raise RuntimeError(
                 "liboqs not available. Install:\n"
                 "  Linux: sudo apt install liboqs-dev\n"
                 "  macOS: brew install liboqs\n"
-                "  Windows: Build from source\n"
+                "  Windows: Download prebuilt binary\n"
                 "  Then restart Python."
             )
         
@@ -156,7 +188,9 @@ class LiboqsKEM:
         pk = ctypes.create_string_buffer(self.pk_len)
         sk = ctypes.create_string_buffer(self.sk_len)
         
-        result = self._kem.contents.keypair(pk, sk)
+        result = _liboqs.OQS_KEM_keypair(self._kem, 
+            ctypes.cast(pk, ctypes.POINTER(ctypes.c_ubyte)),
+            ctypes.cast(sk, ctypes.POINTER(ctypes.c_ubyte)))
         if result != 0:
             raise RuntimeError("Key generation failed")
         
@@ -165,13 +199,16 @@ class LiboqsKEM:
     def encaps(self, public_key: bytes) -> Tuple[bytes, bytes]:
         """Encapsulate."""
         if len(public_key) != self.pk_len:
-            raise ValueError(f"Public key must be {self.pk_len} bytes")
+            raise ValueError(f"Public key must be {self.pk_len} bytes, got {len(public_key)}")
         
         ct = ctypes.create_string_buffer(self.ct_len)
         ss = ctypes.create_string_buffer(self.ss_len)
-        
         pk_buf = ctypes.create_string_buffer(public_key, self.pk_len)
-        result = self._kem.contents.encaps(ct, ss, pk_buf)
+        
+        result = _liboqs.OQS_KEM_encaps(self._kem, 
+            ctypes.cast(ct, ctypes.POINTER(ctypes.c_ubyte)),
+            ctypes.cast(ss, ctypes.POINTER(ctypes.c_ubyte)),
+            ctypes.cast(pk_buf, ctypes.POINTER(ctypes.c_ubyte)))
         if result != 0:
             raise RuntimeError("Encapsulation failed")
         
@@ -185,17 +222,19 @@ class LiboqsKEM:
             raise ValueError(f"Secret key must be {self.sk_len} bytes")
         
         ss = ctypes.create_string_buffer(self.ss_len)
-        
         ct_buf = ctypes.create_string_buffer(ciphertext, self.ct_len)
         sk_buf = ctypes.create_string_buffer(secret_key, self.sk_len)
-        result = self._kem.contents.decaps(ss, ct_buf, sk_buf)
+        
+        result = _liboqs.OQS_KEM_decaps(self._kem, 
+            ctypes.cast(ss, ctypes.POINTER(ctypes.c_ubyte)),
+            ctypes.cast(ct_buf, ctypes.POINTER(ctypes.c_ubyte)),
+            ctypes.cast(sk_buf, ctypes.POINTER(ctypes.c_ubyte)))
         if result != 0:
             raise RuntimeError("Decapsulation failed")
         
         return bytes(ss)
     
     def __del__(self):
-        """Cleanup."""
         if hasattr(self, '_kem') and self._kem:
             _liboqs.OQS_KEM_free(self._kem)
     
@@ -209,7 +248,8 @@ class LiboqsKEM:
         count = _liboqs.OQS_KEM_alg_count()
         for i in range(count):
             name = _liboqs.OQS_KEM_alg_identifier(i)
-            algorithms.append(name.decode() if name else "")
+            if name:
+                algorithms.append(name.decode())
         
         return algorithms
 
@@ -217,19 +257,18 @@ class LiboqsKEM:
 class LiboqsSIG:
     """High-performance Signature via liboqs ctypes."""
     
-    def __init__(self, algorithm: str = "Dilithium3"):
-        """
-        Initialize liboqs Signature.
-        
-        Args:
-            algorithm: liboqs algorithm name (e.g., "Dilithium3", "Falcon-512")
-        """
+    def __init__(self, algorithm: str = "ML-DSA-65"):
+        """Initialize liboqs Signature."""
         if not LIBOQS_AVAILABLE:
             raise RuntimeError("liboqs not available")
         
         self._sig = _liboqs.OQS_SIG_new(algorithm.encode())
         if not self._sig:
-            raise ValueError(f"Algorithm '{algorithm}' not available")
+            available = self.list_algorithms()
+            raise ValueError(
+                f"Algorithm '{algorithm}' not available.\n"
+                f"Available: {', '.join(available[:10])}..."
+            )
         
         self.algorithm = algorithm
         self.pk_len = self._sig.contents.length_public_key
@@ -241,7 +280,9 @@ class LiboqsSIG:
         pk = ctypes.create_string_buffer(self.pk_len)
         sk = ctypes.create_string_buffer(self.sk_len)
         
-        result = self._sig.contents.keypair(pk, sk)
+        result = _liboqs.OQS_SIG_keypair(self._sig, 
+            ctypes.cast(pk, ctypes.POINTER(ctypes.c_ubyte)),
+            ctypes.cast(sk, ctypes.POINTER(ctypes.c_ubyte)))
         if result != 0:
             raise RuntimeError("Key generation failed")
         
@@ -256,11 +297,13 @@ class LiboqsSIG:
         sig_len = ctypes.c_size_t()
         
         sk_buf = ctypes.create_string_buffer(secret_key, self.sk_len)
-        result = self._sig.contents.sign(
-            sig, ctypes.byref(sig_len),
-            ctypes.create_string_buffer(message, len(message)),
+        result = _liboqs.OQS_SIG_sign(
+            self._sig, 
+            ctypes.cast(sig, ctypes.POINTER(ctypes.c_ubyte)), 
+            ctypes.byref(sig_len),
+            ctypes.cast(ctypes.create_string_buffer(message, len(message)), ctypes.POINTER(ctypes.c_ubyte)),
             len(message),
-            sk_buf
+            ctypes.cast(sk_buf, ctypes.POINTER(ctypes.c_ubyte))
         )
         if result != 0:
             raise RuntimeError("Signing failed")
@@ -275,18 +318,18 @@ class LiboqsSIG:
         pk_buf = ctypes.create_string_buffer(public_key, self.pk_len)
         sig_buf = ctypes.create_string_buffer(signature, len(signature))
         
-        result = self._sig.contents.verify(
-            ctypes.create_string_buffer(message, len(message)),
+        result = _liboqs.OQS_SIG_verify(
+            self._sig,
+            ctypes.cast(ctypes.create_string_buffer(message, len(message)), ctypes.POINTER(ctypes.c_ubyte)),
             len(message),
-            sig_buf,
+            ctypes.cast(sig_buf, ctypes.POINTER(ctypes.c_ubyte)),
             len(signature),
-            pk_buf
+            ctypes.cast(pk_buf, ctypes.POINTER(ctypes.c_ubyte))
         )
         
         return result == 0
     
     def __del__(self):
-        """Cleanup."""
         if hasattr(self, '_sig') and self._sig:
             _liboqs.OQS_SIG_free(self._sig)
     
@@ -300,60 +343,10 @@ class LiboqsSIG:
         count = _liboqs.OQS_SIG_alg_count()
         for i in range(count):
             name = _liboqs.OQS_SIG_alg_identifier(i)
-            algorithms.append(name.decode() if name else "")
+            if name:
+                algorithms.append(name.decode())
         
         return algorithms
-
-
-# =============================================================================
-# Unified QSCG Backend Interface
-# =============================================================================
-
-class QSCG_Backend:
-    """
-    Unified backend selector for QSCG.
-    
-    Usage:
-        backend = QSCG_Backend.create("liboqs")  # Fast C backend
-        backend = QSCG_Backend.create("pure")    # Pure Python fallback
-    """
-    
-    @staticmethod
-    def create(backend_type: str = "auto"):
-        """
-        Create backend instance.
-        
-        Args:
-            backend_type: "auto" | "liboqs" | "pure"
-        
-        Returns:
-            Backend instance
-        """
-        if backend_type == "auto":
-            if LIBOQS_AVAILABLE:
-                return "liboqs"
-            return "pure"
-        
-        if backend_type == "liboqs" and not LIBOQS_AVAILABLE:
-            raise RuntimeError("liboqs requested but not available")
-        
-        return backend_type
-    
-    @staticmethod
-    def get_kem(algorithm: str, backend: str = "auto"):
-        """Get KEM instance."""
-        if backend == "auto":
-            backend = QSCG_Backend.create("auto")
-        
-        if backend == "liboqs":
-            # Map NIST names to liboqs names
-            liboqs_name = LIBOQS_KEM_ALGORITHMS.get(algorithm, algorithm)
-            return LiboqsKEM(liboqs_name)
-        
-        # Pure Python fallback
-        from .qscg_v4_core import QSCG, SecurityLevel
-        qscg = QSCG()
-        return qscg
 
 
 # =============================================================================
@@ -373,7 +366,7 @@ def diagnose():
         print("\nInstall:")
         print("  Linux: sudo apt install liboqs-dev")
         print("  macOS: brew install liboqs")
-        print("  Windows: Build from source (CMake + VS)")
+        print("  Windows: Download prebuilt binary")
         return
     
     print(f"[FOUND] {_liboqs_path}")
