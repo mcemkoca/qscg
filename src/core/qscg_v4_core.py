@@ -956,16 +956,14 @@ if __name__ == "__main__":
     qscg = QSCG()
     info = qscg.get_info()
 
-    print(f"
-Version: {info['version']}")
+    print(f"\nVersion: {info['version']}")
     print(f"NIST Standards: {', '.join(info['nist_standards'])}")
     print(f"KEM Algorithms: {', '.join(info['algorithms']['kem'])}")
     print(f"DSA Algorithms: {', '.join(info['algorithms']['dsa'])}")
     print(f"Security Levels: {info['security_levels']}")
 
     # Test ML-KEM
-    print("
-" + "-" * 70)
+    print("\n" + "-" * 70)
     print("ML-KEM Test (Level 3 - ML-KEM-768)")
     print("-" * 70)
 
@@ -981,8 +979,7 @@ Version: {info['version']}")
     print(f"Decapsulation Success: {shared_secret == decapsulated}")
 
     # Test ML-DSA
-    print("
-" + "-" * 70)
+    print("\n" + "-" * 70)
     print("ML-DSA Test (Level 3 - ML-DSA-65)")
     print("-" * 70)
 
