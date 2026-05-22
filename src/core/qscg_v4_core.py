@@ -133,8 +133,12 @@ def secure_random_bytes(n: int) -> bytes:
     return secrets.token_bytes(n)
 
 def secure_random_int(min_val: int, max_val: int) -> int:
-    """Cryptographically secure random integer"""
-    return secrets.randbelow(max_val - min_val) + min_val
+    """Cryptographically secure random integer in [min_val, max_val] (inclusive)"""
+    # [BUGFIX] Original: secrets.randbelow(max_val - min_val) + min_val
+    #           This produced [min_val, max_val-1], missing max_val!
+    # Fixed: secrets.randbelow(max_val - min_val + 1) + min_val
+    #        Now produces [min_val, max_val] as expected
+    return secrets.randbelow(max_val - min_val + 1) + min_val
 
 def bytes_to_bits(data: bytes) -> List[int]:
     """Convert bytes to bit array"""
