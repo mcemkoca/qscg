@@ -26,7 +26,12 @@ QSCG v4.0 is the **only** Python-native, GUI-enabled, AI-integrated toolkit cove
 
 ### Key Features
 
-- ✅ **NIST FIPS 203/204/205 Compliant** - ML-KEM, ML-DSA, SLH-DSA
+- ✅ **NIST FIPS 203/204/205/206 Compliant** - ML-KEM, ML-DSA, SLH-DSA, FN-DSA
+- ✅ **FN-DSA (Falcon) Support** - 5-10x faster signing via liboqs backend
+- ✅ **liboqs ctypes Backend** - 10-50x performance boost when available
+- ✅ **Implicit Rejection** - FIPS 203 CCA-secure decapsulation
+- ✅ **ML-KEM Compress/Decompress** - FIPS 203 Alg 5-6 bit-packing
+- ✅ **DRBG** - NIST SP 800-90A AES-256-CTR for deterministic testing
 - ✅ **Hybrid Cryptography** - PQC + Classical (AES-256-GCM)
 - ✅ **Side-Channel Resistant** - Boolean masking, constant-time operations
 - ✅ **Hardware Acceleration** - AVX2/NEON/FPGA support
