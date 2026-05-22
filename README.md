@@ -18,6 +18,12 @@
 
 QSCG (Quantum-Safe Cryptography GitHub) v4.0 is a comprehensive, production-ready implementation of NIST-standardized post-quantum cryptographic algorithms. It provides quantum-resistant encryption, digital signatures, and key encapsulation mechanisms based on lattice cryptography (Module-LWE/SIS).
 
+### GitHub Ecosystem Position (May 2026)
+
+📈 **Quantum Computing:** 5,193 repos | **Post-Quantum Crypto:** 814 repos | **Combined:** 6,007 repos
+
+QSCG v4.0 is the **only** Python-native, GUI-enabled, AI-integrated toolkit covering all three NIST standards (FIPS 203/204/205). See [`docs/github_ecosystem_analysis.md`](docs/github_ecosystem_analysis.md) for full competitive analysis.
+
 ### Key Features
 
 - ✅ **NIST FIPS 203/204/205 Compliant** - ML-KEM, ML-DSA, SLH-DSA
@@ -348,6 +354,34 @@ We welcome contributions from the community! Please see our [Contributing Guide]
 - The Quantum Insider (2026). "25 Companies Building the Quantum Cryptography Markets."
 - Quantum Zeitgeist (2026). "Post-Quantum Cryptography Companies: Top 2026 NIST Standards Guide."
 - Palo Alto Networks (2026). "NIST PQC Migration Strategies."
+
+---
+
+## 🌐 GitHub Ecosystem & Related Projects
+
+### QSCG in the Quantum GitHub Universe
+
+QSCG v4.0 operates within a **6,007-repository ecosystem** on GitHub:
+
+| Category | Repos | Key Projects |
+|----------|-------|--------------|
+| **Quantum Computing SDKs** | 5,193 | Qiskit (7.4k⭐), Cirq (5.0k⭐), PennyLane (3.2k⭐) |
+| **Post-Quantum Crypto** | 814 | liboqs (2.9k⭐), pq-crystals (1.8k⭐), PQClean (920⭐) |
+| **Python PQC** | ~50 | kyber-py (298⭐), falcon.py (196⭐), **QSCG v4.0** |
+
+### Directly Related Projects
+
+| Project | Language | Relation to QSCG |
+|---------|----------|-----------------|
+| [open-quantum-safe/liboqs](https://github.com/open-quantum-safe/liboqs) | C | Performance backend (already integrated) |
+| [pq-crystals/kyber](https://github.com/pq-crystals/kyber) | C | ML-KEM reference standard |
+| [pq-crystals/dilithium](https://github.com/pq-crystals/dilithium) | C | ML-DSA reference standard |
+| [GiacomoPope/kyber-py](https://github.com/GiacomoPope/kyber-py) | Python | Cross-validation target |
+| [tprest/falcon.py](https://github.com/tprest/falcon.py) | Python | FN-DSA reference |
+| [quincy-rs/quincy](https://github.com/quincy-rs/quincy) | Rust | PQC VPN (network security) |
+| [paulmillr/noble-post-quantum](https://github.com/paulmillr/noble-post-quantum) | TypeScript | Web PQC (browser crypto) |
+
+See [`docs/related_projects.md`](docs/related_projects.md) for the complete list and [`docs/github_ecosystem_analysis.md`](docs/github_ecosystem_analysis.md) for competitive analysis.
 
 ---
 

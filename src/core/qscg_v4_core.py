@@ -35,6 +35,7 @@ import numpy as np
 class SecurityLevel(Enum):
     """NIST Security Levels"""
     LEVEL_1 = 1   # AES-128 equivalent
+    LEVEL_2 = 2   # AES-128/192 hybrid (ML-DSA intermediate)
     LEVEL_3 = 3   # AES-192 equivalent
     LEVEL_5 = 5   # AES-256 equivalent
 
