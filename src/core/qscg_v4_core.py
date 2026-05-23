@@ -267,10 +267,18 @@ class Polynomial:
     """Polynomial over Z_q[x]/(x^n + 1)"""
 
     def __init__(self, coeffs: List[int], q: int = 3329, n: int = 256):
+        # Pad or truncate to exactly n coefficients
+        coeffs = list(coeffs)
+        if len(coeffs) < n:
+            coeffs = coeffs + [0] * (n - len(coeffs))
         self.coeffs = [c % q for c in coeffs[:n]]
         self.q = q
         self.n = n
-        self.ntt = NTT(n, q)
+        # NTT only for Kyber (q=3329). ML-DSA (q=8380417) uses naive multiplication.
+        if q == 3329:
+            self.ntt = NTT(n, q)
+        else:
+            self.ntt = None
 
     def __add__(self, other: 'Polynomial') -> 'Polynomial':
         """Polynomial addition"""
@@ -283,8 +291,20 @@ class Polynomial:
         return Polynomial(result, self.q, self.n)
 
     def __mul__(self, other: 'Polynomial') -> 'Polynomial':
-        """Polynomial multiplication (NTT-based)"""
-        result = self.ntt.multiply(self.coeffs, other.coeffs)
+        """Polynomial multiplication (NTT-based for Kyber, naive for ML-DSA)"""
+        if self.ntt is not None and self.q == 3329:
+            result = self.ntt.multiply(self.coeffs, other.coeffs)
+        else:
+            # Naive O(n^2) multiplication for non-Kyber moduli
+            n = self.n
+            q = self.q
+            result = [0] * n
+            for i in range(n):
+                for j in range(n):
+                    if i + j < n:
+                        result[i + j] = (result[i + j] + self.coeffs[i] * other.coeffs[j]) % q
+                    else:
+                        result[i + j - n] = (result[i + j - n] - self.coeffs[i] * other.coeffs[j]) % q
         return Polynomial(result, self.q, self.n)
 
     def __repr__(self) -> str:
@@ -431,8 +451,9 @@ class MLKEM:
             v = v + (t[i] * r[i])
         v = v + e2
 
-        # Add message (simplified)
-        m_poly = Polynomial([int(b) for b in m[:self.n]], self.q, self.n)
+        # Add message (simplified - expand 32 bytes to 256 coefficients)
+        m_padded = (m * 8)[:self.n]  # 32 bytes -> 256 bytes -> 256 coefficients
+        m_poly = Polynomial([int(b) for b in m_padded], self.q, self.n)
         v = v + m_poly
 
         # Encode ciphertext
@@ -474,26 +495,9 @@ class MLKEM:
         # Extract message
         m = bytes([c % 256 for c in m_prime.coeffs[:32]])
 
-        # FIPS 203 Implicit Rejection:
-        # Re-encapsulate m to get expected ciphertext c'
-        # If received c matches c', return K = H(m + pk)
-        # If mismatch, return H(z + c) to hide decryption failure
-        
-        # Compute expected shared secret
-        K_expected = hashlib.sha3_256(m + pk).digest()
-        
-        # Compute implicit rejection value (always computed, selected by constant-time check)
-        K_reject = hashlib.sha3_256(z + ciphertext.c1 + ciphertext.c2).digest()
-        
-        # Simplified validation: compare hash of ciphertext components
-        # In full FIPS 203: full re-encryption and compare
-        c_hash = hashlib.sha3_256(ciphertext.c1 + ciphertext.c2).digest()[:16]
-        expected_c_hash = hashlib.sha3_256(K_expected + pk).digest()[:16]
-        
-        # Constant-time selection (simulated - Python not truly constant-time)
-        valid = c_hash == expected_c_hash
-        K = K_expected if valid else K_reject
-        
+        # FIPS 203 Implicit Rejection (simplified for toy implementation):
+        # Return K = H(m + pk) always (full re-encryption validation TODO)
+        K = hashlib.sha3_256(m + pk).digest()
         return K
 
     # Encoding/Decoding helpers (simplified)
@@ -668,13 +672,19 @@ class MLDSA:
 
         return MLDSASignature(sig, self.level)
 
-    def verify(self, public_key: bytes, message: bytes, signature: MLDSASignature) -> bool:
-        """Verify signature"""
+    def verify(self, public_key: bytes, message: bytes, signature) -> bool:
+        """Verify signature. Accepts MLDSASignature or raw bytes."""
+        # Handle both MLDSASignature and raw bytes
+        if hasattr(signature, 'value'):
+            sig_bytes = signature.value
+        else:
+            sig_bytes = signature
+
         # Decode public key
         rho, t = self._decode_public_key(public_key)
 
         # Decode signature
-        c, z = self._decode_signature(signature.value)
+        c, z = self._decode_signature(sig_bytes)
 
         # Generate matrix A
         A = self._expand_matrix(rho)
@@ -731,9 +741,9 @@ class MLDSA:
     def _encode_secret_key(self, rho: bytes, K: bytes, s1: List[Polynomial], 
                           s2: List[Polynomial], t: List[Polynomial]) -> bytes:
         """Encode secret key"""
-        s1_bytes = b''.join(struct.pack(f'<{self.n}H', *p.coeffs) for p in s1)
-        s2_bytes = b''.join(struct.pack(f'<{self.n}H', *p.coeffs) for p in s2)
-        t0_bytes = b''.join(struct.pack(f'<{self.n}I', *p.coeffs) for p in t)
+        s1_bytes = b''.join(struct.pack(f'<{self.n}I', *[c % self.q for c in p.coeffs]) for p in s1)
+        s2_bytes = b''.join(struct.pack(f'<{self.n}I', *[c % self.q for c in p.coeffs]) for p in s2)
+        t0_bytes = b''.join(struct.pack(f'<{self.n}I', *[c % self.q for c in p.coeffs]) for p in t)
         return rho + K + s1_bytes + s2_bytes + t0_bytes
 
     def _decode_secret_key(self, sk: bytes) -> Tuple[bytes, bytes, List[Polynomial], 
@@ -743,21 +753,21 @@ class MLDSA:
         K = sk[32:64]
         offset = 64
 
-        s1_len = self.l * self.n * 2
+        s1_len = self.l * self.n * 4
         s1 = []
         for i in range(self.l):
-            start = offset + i * self.n * 2
-            end = start + self.n * 2
-            coeffs = list(struct.unpack(f'<{self.n}H', sk[start:end]))
+            start = offset + i * self.n * 4
+            end = start + self.n * 4
+            coeffs = list(struct.unpack(f'<{self.n}I', sk[start:end]))
             s1.append(Polynomial(coeffs, self.q, self.n))
         offset += s1_len
 
-        s2_len = self.k * self.n * 2
+        s2_len = self.k * self.n * 4
         s2 = []
         for i in range(self.k):
-            start = offset + i * self.n * 2
-            end = start + self.n * 2
-            coeffs = list(struct.unpack(f'<{self.n}H', sk[start:end]))
+            start = offset + i * self.n * 4
+            end = start + self.n * 4
+            coeffs = list(struct.unpack(f'<{self.n}I', sk[start:end]))
             s2.append(Polynomial(coeffs, self.q, self.n))
         offset += s2_len
 

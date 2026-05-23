@@ -71,23 +71,30 @@ class KyberNTT:
         
         Input: coefficients in standard order
         Output: NTT coefficients in bit-reversed order
+        
+        Adapted from kyber-py (GiacomoPope) reference implementation.
         """
         a = list(coeffs)
         n = self.n
         q = self.q
         zetas = self.zetas
 
-        l = 2
         k = 1
-        while l <= n // 2:
-            for start in range(0, n, l * 2):
+        l = 128
+        while l >= 2:
+            start = 0
+            while start < n:
                 zeta = zetas[k]
                 k += 1
                 for j in range(start, start + l):
-                    t = (zeta * a[j + l]) % q
-                    a[j + l] = (a[j] - t) % q
-                    a[j] = (a[j] + t) % q
-            l <<= 1
+                    t = zeta * a[j + l]
+                    a[j + l] = a[j] - t
+                    a[j] = a[j] + t
+                start = l + (j + 1)
+            l >>= 1
+
+        for j in range(n):
+            a[j] = a[j] % q
 
         return a
 
@@ -98,26 +105,29 @@ class KyberNTT:
         
         Input: NTT coefficients in bit-reversed order
         Output: coefficients in standard order
+        
+        Adapted from kyber-py (GiacomoPope) reference implementation.
         """
         a = list(a_ntt)
         n = self.n
         q = self.q
-        zetas_inv = self.zetas_inv
+        zetas = self.zetas
 
-        l = n // 2
-        k = n // 2 - 1
-        while l >= 2:
-            for start in range(0, n, l * 2):
-                zeta = zetas_inv[k]
+        l = 2
+        k = 127
+        while l <= 128:
+            start = 0
+            while start < n:
+                zeta = zetas[k]
                 k -= 1
                 for j in range(start, start + l):
                     t = a[j]
-                    a[j] = (t + a[j + l]) % q
-                    a[j + l] = (t - a[j + l]) % q
-                    a[j + l] = (a[j + l] * zeta) % q
-            l >>= 1
+                    a[j] = t + a[j + l]
+                    a[j + l] = a[j + l] - t
+                    a[j + l] = zeta * a[j + l]
+                start = j + l + 1
+            l <<= 1
 
-        # Multiply by n^{-1} mod q = 3303
         for j in range(n):
             a[j] = (a[j] * self.f) % q
 

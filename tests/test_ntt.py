@@ -13,7 +13,8 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'core'))
 
-from ntt_kyber import KyberNTT, NTT
+import pytest
+from ntt_kyber import KyberNTT, NTT, _bit_reverse
 import secrets
 
 # Try to import kyber-py for reference comparison
@@ -217,15 +218,24 @@ def test_zeta_properties():
     # zeta[0] = 1 (identity)
     assert ntt.zetas[0] == 1
     
-    # zeta[64] should be a primitive 2nd root of unity (=-1 mod 3329)
-    # Actually zeta[64] = pow(17, br(64,7), 3329) = pow(17, 1, 3329) = 17
-    # zeta[127] = pow(17, br(127,7), 3329) = pow(17, 127, 3329)
+    # zetas length = 128
+    assert len(ntt.zetas) == 128
     
-    # Check that zeta[64+i] = -zeta[i] for the base multiplication pairs
-    for i in range(64):
-        assert (ntt.zetas[64 + i] + ntt.zetas[i]) % Q == 0 or \
-               (ntt.zetas[64 + i] - ntt.zetas[i]) % Q == 0, \
-               f"zeta pair {i} doesn't satisfy expected relation"
+    # Each zeta is computed as 17^(bit_reverse(i, 7)) mod 3329
+    for i in range(128):
+        expected = pow(17, _bit_reverse(i, 7), 3329)
+        assert ntt.zetas[i] == expected, f"zeta[{i}] mismatch"
+    
+    # All zetas are in valid range [0, 3328]
+    for z in ntt.zetas:
+        assert 0 <= z < 3329
+    
+    # zeta[127] is a primitive root (order > 1)
+    assert ntt.zetas[127] != 1
+    
+    # Verify inverse zetas: zeta * zeta_inv == 1 mod 3329
+    for i in range(128):
+        assert (ntt.zetas[i] * ntt.zetas_inv[i]) % 3329 == 1
 
 
 def test_performance_comparison():
