@@ -4,7 +4,7 @@ quantum_safe_crypto - Post-Quantum Cryptography Toolkit v3.0.0
 NIST FIPS 203/204/205 + HQC (IR 8545) + FN-DSA (FIPS 206 draft)
 """
 
-__version__ = "3.0.0"
+__version__ = "4.0.1"
 __author__ = "Mehmet Cem Koca (mcemkoca)"
 __license__ = "MIT"
 

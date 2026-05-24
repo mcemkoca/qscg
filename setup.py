@@ -8,7 +8,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="qscg",
-    version="4.0.0",
+    version="4.0.1",
     author="M.Cem Koca",
     author_email="mcemkoca0@gmail.com",
     description="Quantum-Safe Cryptography Infrastructure",

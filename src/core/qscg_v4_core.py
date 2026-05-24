@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-QSCG v4.0 - Quantum-Safe Cryptography Core
+QSCG v4.0.1 - Quantum-Safe Cryptography Core
 ============================================
 NIST FIPS 203/204/205 Compliant Implementation
 Lattice-based ML-KEM, ML-DSA, SLH-DSA
@@ -887,7 +887,7 @@ class QSCG:
     """Main QSCG interface"""
 
     def __init__(self):
-        self.version = "4.0.0"
+        self.version = "4.0.1"
         self.ml_kem = {}
         self.ml_dsa = {}
         self.slh_dsa = {}
