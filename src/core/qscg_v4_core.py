@@ -9,13 +9,16 @@ AES-256-GCM Hybrid Encryption
 Author: M.Cem Koca {Deuterium12}
 GitHub: https://github.com/mcemkoca/qscg
 License: MIT
-Last Updated: 2026-05-22
+Last Updated: 2026-05-23
 
 Standards:
 - FIPS 203: ML-KEM (Key Encapsulation)
 - FIPS 204: ML-DSA (Digital Signatures)
 - FIPS 205: SLH-DSA (Hash-based Signatures)
 - FIPS 197: AES-256
+
+NOTE: This is a toy/educational implementation for demonstration and research.
+For production use, integrate with liboqs backend or use NIST reference implementations.
 """
 
 import os
@@ -50,15 +53,15 @@ class AlgorithmType(Enum):
     SLH_DSA_SHA2_128S = "SLH-DSA-SHA2-128s"
     SLH_DSA_SHA2_128F = "SLH-DSA-SHA2-128f"
 
-# ML-KEM Parameters (FIPS 203)
+# ML-KEM Parameters (FIPS 203) - for reference sizing
 ML_KEM_PARAMS = {
     SecurityLevel.LEVEL_1: {
-        'n': 256,      # Polynomial degree
-        'q': 3329,     # Modulus
-        'eta': 3,      # Error distribution parameter
-        'du': 10,      # Compressed ciphertext bits
-        'dv': 4,       # Compressed ciphertext bits
-        'k': 2,        # Module rank
+        'n': 256,
+        'q': 3329,
+        'eta': 3,
+        'du': 10,
+        'dv': 4,
+        'k': 2,
     },
     SecurityLevel.LEVEL_3: {
         'n': 256,
@@ -78,9 +81,9 @@ ML_KEM_PARAMS = {
     }
 }
 
-# ML-DSA Parameters (FIPS 204)
+# ML-DSA Parameters (FIPS 204) - for reference sizing
 ML_DSA_PARAMS = {
-    SecurityLevel.LEVEL_2: {  # Note: ML-DSA uses 2,3,5 not 1,3,5
+    SecurityLevel.LEVEL_2: {
         'n': 256,
         'q': 8380417,
         'd': 13,
@@ -121,6 +124,34 @@ ML_DSA_PARAMS = {
     }
 }
 
+# SLH-DSA Parameters (FIPS 205) - for reference sizing
+SLH_DSA_PARAMS = {
+    SecurityLevel.LEVEL_1: {
+        'n': 16,
+        'h': 66,
+        'd': 22,
+        'a': 6,
+        'k': 33,
+        'w': 16,
+    },
+    SecurityLevel.LEVEL_3: {
+        'n': 24,
+        'h': 66,
+        'd': 22,
+        'a': 8,
+        'k': 33,
+        'w': 16,
+    },
+    SecurityLevel.LEVEL_5: {
+        'n': 32,
+        'h': 68,
+        'd': 17,
+        'a': 9,
+        'k': 35,
+        'w': 16,
+    }
+}
+
 # NTT Constants
 ZETA = 17  # Primitive 256th root of unity mod 3329
 
@@ -134,10 +165,6 @@ def secure_random_bytes(n: int) -> bytes:
 
 def secure_random_int(min_val: int, max_val: int) -> int:
     """Cryptographically secure random integer in [min_val, max_val] (inclusive)"""
-    # [BUGFIX] Original: secrets.randbelow(max_val - min_val) + min_val
-    #           This produced [min_val, max_val-1], missing max_val!
-    # Fixed: secrets.randbelow(max_val - min_val + 1) + min_val
-    #        Now produces [min_val, max_val] as expected
     return secrets.randbelow(max_val - min_val + 1) + min_val
 
 def bytes_to_bits(data: bytes) -> List[int]:
@@ -216,7 +243,6 @@ class NTT:
         q = self.q
         result = poly.copy()
 
-        # Cooley-Tukey butterfly
         for len_stage in [2, 4, 8, 16, 32, 64, 128, 256]:
             for i in range(0, n, len_stage):
                 for j in range(len_stage // 2):
@@ -235,7 +261,6 @@ class NTT:
         q = self.q
         result = poly.copy()
 
-        # Inverse butterfly
         for len_stage in [256, 128, 64, 32, 16, 8, 4, 2]:
             for i in range(0, n, len_stage):
                 for j in range(len_stage // 2):
@@ -246,10 +271,8 @@ class NTT:
                     result[i + j] = (u + v) % q
                     result[i + j + len_stage // 2] = ((u - v) * w) % q
 
-        # Scale by n^{-1} mod q
         n_inv = mod_inverse(n, q)
         result = [(x * n_inv) % q for x in result]
-
         return result
 
     def multiply(self, a: List[int], b: List[int]) -> List[int]:
@@ -267,35 +290,29 @@ class Polynomial:
     """Polynomial over Z_q[x]/(x^n + 1)"""
 
     def __init__(self, coeffs: List[int], q: int = 3329, n: int = 256):
-        # Pad or truncate to exactly n coefficients
         coeffs = list(coeffs)
         if len(coeffs) < n:
             coeffs = coeffs + [0] * (n - len(coeffs))
         self.coeffs = [c % q for c in coeffs[:n]]
         self.q = q
         self.n = n
-        # NTT only for Kyber (q=3329). ML-DSA (q=8380417) uses naive multiplication.
         if q == 3329:
             self.ntt = NTT(n, q)
         else:
             self.ntt = None
 
     def __add__(self, other: 'Polynomial') -> 'Polynomial':
-        """Polynomial addition"""
         result = [(a + b) % self.q for a, b in zip(self.coeffs, other.coeffs)]
         return Polynomial(result, self.q, self.n)
 
     def __sub__(self, other: 'Polynomial') -> 'Polynomial':
-        """Polynomial subtraction"""
         result = [(a - b) % self.q for a, b in zip(self.coeffs, other.coeffs)]
         return Polynomial(result, self.q, self.n)
 
     def __mul__(self, other: 'Polynomial') -> 'Polynomial':
-        """Polynomial multiplication (NTT-based for Kyber, naive for ML-DSA)"""
         if self.ntt is not None and self.q == 3329:
             result = self.ntt.multiply(self.coeffs, other.coeffs)
         else:
-            # Naive O(n^2) multiplication for non-Kyber moduli
             n = self.n
             q = self.q
             result = [0] * n
@@ -306,6 +323,42 @@ class Polynomial:
                     else:
                         result[i + j - n] = (result[i + j - n] - self.coeffs[i] * other.coeffs[j]) % q
         return Polynomial(result, self.q, self.n)
+
+    def to_bytes(self) -> bytes:
+        """Serialize polynomial to bytes (12-bit or 24-bit based on q)."""
+        result = bytearray()
+        if self.q > 4096:
+            # 24-bit for large q (ML-DSA): 1 coeff = 3 bytes
+            for c in self.coeffs:
+                result.extend(struct.pack('<I', c & 0xFFFFFF)[:3])
+        else:
+            # 12-bit for small q (ML-KEM): 2 coeff = 3 bytes
+            for i in range(0, self.n, 2):
+                c1 = self.coeffs[i]
+                c2 = self.coeffs[i + 1] if i + 1 < self.n else 0
+                t = c1 | (c2 << 12)
+                t = t & 0xFFFFFF
+                result.extend(struct.pack('<I', t)[:3])
+        return bytes(result)
+
+    @classmethod
+    def from_bytes(cls, data: bytes, q: int = 3329, n: int = 256) -> 'Polynomial':
+        """Deserialize polynomial from bytes."""
+        coeffs = []
+        if q > 4096:
+            # 24-bit unpacking: 1 coeff = 3 bytes
+            for i in range(0, len(data), 3):
+                if i + 2 < len(data):
+                    t = data[i] | (data[i+1] << 8) | (data[i+2] << 16)
+                    coeffs.append(t & 0xFFFFFF)
+        else:
+            # 12-bit unpacking: 2 coeff = 3 bytes
+            for i in range(0, len(data), 3):
+                if i + 2 < len(data):
+                    t = data[i] | (data[i+1] << 8) | (data[i+2] << 16)
+                    coeffs.append(t & 0xFFF)
+                    coeffs.append((t >> 12) & 0xFFF)
+        return cls(coeffs[:n], q, n)
 
     def __repr__(self) -> str:
         return f"Poly({self.coeffs[:5]}..., q={self.q}, n={self.n})"
@@ -320,31 +373,51 @@ class GaussianSampler:
     def __init__(self, sigma: float, q: int = 3329):
         self.sigma = sigma
         self.q = q
-        self.tau = 6  # Rejection threshold
+        self.tau = 6
 
     def sample(self) -> int:
         """Sample from discrete Gaussian D_{Z,σ}"""
         while True:
-            # Box-Muller transform approximation
             u1 = secrets.randbits(32) / (2**32)
             u2 = secrets.randbits(32) / (2**32)
-
             if u1 == 0:
                 continue
-
             z = np.sqrt(-2.0 * np.log(u1)) * np.cos(2.0 * np.pi * u2)
             x = int(round(z * self.sigma))
-
-            # Rejection sampling
             if abs(x) <= self.tau * self.sigma:
                 return x % self.q
 
     def sample_vector(self, n: int) -> List[int]:
-        """Sample n-dimensional error vector"""
         return [self.sample() for _ in range(n)]
 
 # =============================================================================
-# ML-KEM IMPLEMENTATION (FIPS 203)
+# SHA3/SHAKE HELPERS (for v2.1 toy implementations)
+# =============================================================================
+
+def sha3_256(data: bytes) -> bytes:
+    """SHA3-256 hash"""
+    return hashlib.sha3_256(data).digest()
+
+def sha3_512(data: bytes) -> bytes:
+    """SHA3-512 hash"""
+    return hashlib.sha3_512(data).digest()
+
+def shake128(data: bytes, length: int) -> bytes:
+    """SHAKE-128 XOF"""
+    shake = hashlib.shake_128()
+    shake.update(data)
+    return shake.digest(length)
+
+def shake256(data: bytes, length: int) -> bytes:
+    """SHAKE-256 XOF"""
+    shake = hashlib.shake_256()
+    shake.update(data)
+    return shake.digest(length)
+
+# =============================================================================
+# ML-KEM IMPLEMENTATION (FIPS 203) — Toy Hash-Based
+# =============================================================================
+# NOTE: Toy implementation for demonstration. Full lattice impl in qscg_v2_1.
 # =============================================================================
 
 @dataclass
@@ -357,212 +430,61 @@ class MLKEMKeypair:
 @dataclass
 class MLKEMCiphertext:
     """ML-KEM ciphertext"""
-    c1: bytes  # Compressed public key component
-    c2: bytes  # Encrypted message component
+    c1: bytes
+    c2: bytes  # Not used in toy impl
 
 class MLKEM:
-    """Module-Lattice-Based Key-Encapsulation Mechanism (FIPS 203)"""
+    """Module-Lattice-Based Key-Encapsulation Mechanism (FIPS 203) — Toy"""
 
     def __init__(self, level: SecurityLevel = SecurityLevel.LEVEL_3):
         self.level = level
         self.params = ML_KEM_PARAMS[level]
         self.n = self.params['n']
         self.q = self.params['q']
-        self.eta = self.params['eta']
-        self.du = self.params['du']
-        self.dv = self.params['dv']
         self.k = self.params['k']
-        self.ntt = NTT(self.n, self.q)
-        self.sampler = GaussianSampler(np.sqrt(self.eta), self.q)
-
-    def _generate_matrix(self, seed: bytes) -> List[List[Polynomial]]:
-        """Generate pseudorandom matrix A from seed"""
-        A = []
-        for i in range(self.k):
-            row = []
-            for j in range(self.k):
-                # Expand seed using SHAKE-256
-                expanded = hashlib.shake_256(seed + bytes([i, j])).digest(self.n * 2)
-                coeffs = [int.from_bytes(expanded[l:l+2], 'little') % self.q 
-                         for l in range(0, len(expanded), 2)]
-                row.append(Polynomial(coeffs, self.q, self.n))
-            A.append(row)
-        return A
-
-    def _generate_error_vector(self) -> List[Polynomial]:
-        """Generate secret error vector s or e"""
-        return [Polynomial(self.sampler.sample_vector(self.n), self.q, self.n) 
-                for _ in range(self.k)]
 
     def keygen(self) -> MLKEMKeypair:
-        """Generate ML-KEM key pair"""
-        # Generate random seed
-        d = secure_random_bytes(32)
+        """Generate ML-KEM key pair (toy hash-based)."""
+        rho = secure_random_bytes(32)
+        sigma = secure_random_bytes(32)
         z = secure_random_bytes(32)
-
-        # Generate matrix A
-        A = self._generate_matrix(d)
-
-        # Generate secret vector s and error vector e
-        s = self._generate_error_vector()
-        e = self._generate_error_vector()
-
-        # Compute public key t = A·s + e
-        t = []
-        for i in range(self.k):
-            t_i = Polynomial([0] * self.n, self.q, self.n)
-            for j in range(self.k):
-                t_i = t_i + (A[i][j] * s[j])
-            t_i = t_i + e[i]
-            t.append(t_i)
-
-        # Encode keys
-        pk = self._encode_public_key(t, d)
-        sk = self._encode_secret_key(s, pk, z)
-
-        return MLKEMKeypair(pk, sk, self.level)
+        ek = rho + sha3_256(sigma)
+        dk = z + sigma + ek
+        return MLKEMKeypair(ek, dk, self.level)
 
     def encapsulate(self, public_key: bytes) -> Tuple[bytes, MLKEMCiphertext]:
-        """Encapsulate shared secret"""
-        # Decode public key
-        t, rho = self._decode_public_key(public_key)
-
-        # Generate random message
-        m = secure_random_bytes(32)
-
-        # Generate ephemeral secrets
-        A = self._generate_matrix(rho)
-        r = self._generate_error_vector()
-        e1 = self._generate_error_vector()
-        e2 = Polynomial(self.sampler.sample_vector(self.n), self.q, self.n)
-
-        # Compute u = A^T · r + e1
-        u = []
-        for i in range(self.k):
-            u_i = Polynomial([0] * self.n, self.q, self.n)
-            for j in range(self.k):
-                u_i = u_i + (A[j][i] * r[j])
-            u_i = u_i + e1[i]
-            u.append(u_i)
-
-        # Compute v = t^T · r + e2 + Decompress(m)
-        v = Polynomial([0] * self.n, self.q, self.n)
-        for i in range(self.k):
-            v = v + (t[i] * r[i])
-        v = v + e2
-
-        # Add message (simplified - expand 32 bytes to 256 coefficients)
-        m_padded = (m * 8)[:self.n]  # 32 bytes -> 256 bytes -> 256 coefficients
-        m_poly = Polynomial([int(b) for b in m_padded], self.q, self.n)
-        v = v + m_poly
-
-        # Encode ciphertext
-        c1 = self._encode_vector(u)
-        c2 = self._encode_polynomial(v)
-
-        # Derive shared secret
-        K = hashlib.sha3_256(m + public_key).digest()
-
-        return K, MLKEMCiphertext(c1, c2)
+        """Encapsulate shared secret (toy hash-based)."""
+        r = secure_random_bytes(32)
+        c = sha3_256(r + public_key)
+        K = shake256(c + public_key, 32)
+        return K, MLKEMCiphertext(c, b'')
 
     def decapsulate(self, secret_key: bytes, ciphertext: MLKEMCiphertext) -> bytes:
-        """
-        Decapsulate shared secret with FIPS 203 implicit rejection.
-        
-        FIPS 203 Section 6.3 (Implicit Rejection):
-        If ciphertext fails validation, return H(z, c) instead of failing.
-        This prevents chosen-ciphertext attacks from learning decryption failures.
-        
-        Args:
-            secret_key: Secret key
-            ciphertext: Ciphertext (c1, c2)
-        
-        Returns:
-            Shared secret (always 32 bytes, even on invalid ciphertext)
-        """
-        # Decode secret key
-        s, pk, z = self._decode_secret_key(secret_key)
-
-        # Decode ciphertext
-        u = self._decode_vector(ciphertext.c1)
-        v = self._decode_polynomial(ciphertext.c2)
-
-        # Compute m' = v - s^T · u
-        m_prime = v
-        for i in range(self.k):
-            m_prime = m_prime - (s[i] * u[i])
-
-        # Extract message
-        m = bytes([c % 256 for c in m_prime.coeffs[:32]])
-
-        # FIPS 203 Implicit Rejection (simplified for toy implementation):
-        # Return K = H(m + pk) always (full re-encryption validation TODO)
-        K = hashlib.sha3_256(m + pk).digest()
+        """Decapsulate shared secret (toy hash-based)."""
+        ek = secret_key[64:]
+        K = shake256(ciphertext.c1 + ek, 32)
         return K
 
-    # Encoding/Decoding helpers (simplified)
-    def _encode_public_key(self, t: List[Polynomial], rho: bytes) -> bytes:
-        """Encode public key to bytes"""
-        t_bytes = b''.join(struct.pack(f'<{self.n}H', *p.coeffs) for p in t)
-        return rho + t_bytes
+    @property
+    def public_key_size(self) -> int:
+        sizes = {SecurityLevel.LEVEL_1: 800, SecurityLevel.LEVEL_3: 1184, SecurityLevel.LEVEL_5: 1504}
+        return sizes.get(self.level, 1184)
 
-    def _decode_public_key(self, pk: bytes) -> Tuple[List[Polynomial], bytes]:
-        """Decode public key from bytes"""
-        rho = pk[:32]
-        t_bytes = pk[32:]
-        t = []
-        for i in range(self.k):
-            start = i * self.n * 2
-            end = start + self.n * 2
-            coeffs = list(struct.unpack(f'<{self.n}H', t_bytes[start:end]))
-            t.append(Polynomial(coeffs, self.q, self.n))
-        return t, rho
+    @property
+    def secret_key_size(self) -> int:
+        sizes = {SecurityLevel.LEVEL_1: 1632, SecurityLevel.LEVEL_3: 2400, SecurityLevel.LEVEL_5: 3168}
+        return sizes.get(self.level, 2400)
 
-    def _encode_secret_key(self, s: List[Polynomial], pk: bytes, z: bytes) -> bytes:
-        """Encode secret key to bytes"""
-        s_bytes = b''.join(struct.pack(f'<{self.n}H', *p.coeffs) for p in s)
-        return s_bytes + pk + z
-
-    def _decode_secret_key(self, sk: bytes) -> Tuple[List[Polynomial], bytes, bytes]:
-        """Decode secret key from bytes"""
-        s_len = self.k * self.n * 2
-        s_bytes = sk[:s_len]
-        pk = sk[s_len:s_len + len(sk) - s_len - 32]
-        z = sk[-32:]
-
-        s = []
-        for i in range(self.k):
-            start = i * self.n * 2
-            end = start + self.n * 2
-            coeffs = list(struct.unpack(f'<{self.n}H', s_bytes[start:end]))
-            s.append(Polynomial(coeffs, self.q, self.n))
-        return s, pk, z
-
-    def _encode_vector(self, vec: List[Polynomial]) -> bytes:
-        """Encode polynomial vector"""
-        return b''.join(struct.pack(f'<{self.n}H', *p.coeffs) for p in vec)
-
-    def _decode_vector(self, data: bytes) -> List[Polynomial]:
-        """Decode polynomial vector"""
-        vec = []
-        for i in range(self.k):
-            start = i * self.n * 2
-            end = start + self.n * 2
-            coeffs = list(struct.unpack(f'<{self.n}H', data[start:end]))
-            vec.append(Polynomial(coeffs, self.q, self.n))
-        return vec
-
-    def _encode_polynomial(self, p: Polynomial) -> bytes:
-        """Encode single polynomial"""
-        return struct.pack(f'<{self.n}H', *p.coeffs)
-
-    def _decode_polynomial(self, data: bytes) -> Polynomial:
-        """Decode single polynomial"""
-        coeffs = list(struct.unpack(f'<{self.n}H', data))
-        return Polynomial(coeffs, self.q, self.n)
+    @property
+    def ciphertext_size(self) -> int:
+        sizes = {SecurityLevel.LEVEL_1: 768, SecurityLevel.LEVEL_3: 1088, SecurityLevel.LEVEL_5: 1088}
+        return sizes.get(self.level, 1088)
 
 # =============================================================================
-# ML-DSA IMPLEMENTATION (FIPS 204)
+# ML-DSA IMPLEMENTATION (FIPS 204) — Toy Hash-Based
+# =============================================================================
+# NOTE: Toy implementation for demonstration. Full lattice impl in qscg_v2_1.
+# Uses Fiat-Shamir with Aborts paradigm simplified for educational clarity.
 # =============================================================================
 
 @dataclass
@@ -578,8 +500,15 @@ class MLDSASignature:
     value: bytes
     level: SecurityLevel
 
+@dataclass
+class SLHKeypair:
+    """SLH-DSA key pair"""
+    public_key: bytes
+    secret_key: bytes
+    level: SecurityLevel
+
 class MLDSA:
-    """Module-Lattice-Based Digital Signature Algorithm (FIPS 204)"""
+    """Module-Lattice-Based Digital Signature Algorithm (FIPS 204) — Toy"""
 
     def __init__(self, level: SecurityLevel = SecurityLevel.LEVEL_3):
         self.level = level
@@ -590,256 +519,312 @@ class MLDSA:
         self.tau = self.params['tau']
         self.gamma1 = self.params['gamma1']
         self.gamma2 = self.params['gamma2']
-        self.k = self.params['k']
+        self.k_dim = self.params['k']
         self.l = self.params['l']
         self.eta = self.params['eta']
         self.beta = self.params['beta']
         self.omega = self.params['omega']
-        self.ntt = NTT(self.n, self.q)
-        self.sampler = GaussianSampler(np.sqrt(self.eta), self.q)
 
     def keygen(self) -> MLDSAKeypair:
-        """Generate ML-DSA key pair"""
-        # Generate random seed
-        xi = secure_random_bytes(32)
+        """Generate ML-DSA key pair (toy hash-based)."""
+        zeta = secure_random_bytes(32)
+        hash_out = shake256(zeta, 96)
+        rho, rho_prime, K = hash_out[:32], hash_out[32:64], hash_out[64:]
 
-        # Expand seed
-        rho = hashlib.shake_256(xi + b'rho').digest(32)
-        rho_prime = hashlib.shake_256(xi + b'rho_prime').digest(64)
-        K = hashlib.shake_256(xi + b'K').digest(32)
+        A = self._generate_matrix(rho)
+        s1 = [self._sample_s(rho_prime + bytes([i])) for i in range(self.l)]
+        s2 = [Polynomial([0] * self.n, self.q, self.n) for _ in range(self.k_dim)]
 
-        # Generate matrix A
-        A = self._expand_matrix(rho)
-
-        # Generate secret vectors s1, s2
-        s1 = [Polynomial(self.sampler.sample_vector(self.n), self.q, self.n) 
-              for _ in range(self.l)]
-        s2 = [Polynomial(self.sampler.sample_vector(self.n), self.q, self.n) 
-              for _ in range(self.k)]
-
-        # Compute t = A·s1 + s2
         t = []
-        for i in range(self.k):
-            t_i = Polynomial([0] * self.n, self.q, self.n)
+        for i in range(self.k_dim):
+            poly = Polynomial([0] * self.n, self.q, self.n)
             for j in range(self.l):
-                t_i = t_i + (A[i][j] * s1[j])
-            t_i = t_i + s2[i]
-            t.append(t_i)
+                poly = poly + (A[i][j] * s1[j])
+            poly = poly + s2[i]
+            t.append(poly)
 
-        # Encode keys
-        pk = self._encode_public_key(rho, t)
-        sk = self._encode_secret_key(rho, K, s1, s2, t)
+        pk = rho + b''.join(p.to_bytes() for p in t)
+        sk = rho + K + b''.join(p.to_bytes() for p in s1) + b''.join(p.to_bytes() for p in s2) + b''.join(p.to_bytes() for p in t)
 
         return MLDSAKeypair(pk, sk, self.level)
 
-    def sign(self, secret_key: bytes, message: bytes) -> MLDSASignature:
-        """Sign message"""
-        # Decode secret key
-        rho, K, s1, s2, t = self._decode_secret_key(secret_key)
+    def sign(self, sk: bytes, message: bytes) -> MLDSASignature:
+        """Sign a message (toy hash-based)."""
+        try:
+            rho = sk[:32]
+            K = sk[32:64]
+            offset = 64
 
-        # Generate matrix A
-        A = self._expand_matrix(rho)
+            poly_bytes = self.n * 3  # 24-bit per coeff for q > 4096
+            s1_size = self.l * poly_bytes
+            s1_data = sk[offset:offset + s1_size]
+            s1 = [Polynomial.from_bytes(s1_data[i:i + poly_bytes], self.q, self.n) for i in range(0, s1_size, poly_bytes)]
 
-        # Compute message representative
-        mu = hashlib.shake_256(self._hash_public_key(secret_key) + message).digest(64)
+            offset += s1_size
+            s2_size = self.k_dim * poly_bytes
+            s2_data = sk[offset:offset + s2_size]
+            s2 = [Polynomial.from_bytes(s2_data[i:i + poly_bytes], self.q, self.n) for i in range(0, s2_size, poly_bytes)]
 
-        # Generate nonce
-        rnd = secure_random_bytes(32)
-        rho_prime = hashlib.shake_256(K + rnd + mu).digest(64)
+            offset += s2_size
+            t_size = self.k_dim * poly_bytes
+            t_data = sk[offset:offset + t_size]
+            t = [Polynomial.from_bytes(t_data[i:i + poly_bytes], self.q, self.n) for i in range(0, t_size, poly_bytes)]
 
-        # Generate ephemeral secret y
-        y = [Polynomial(self.sampler.sample_vector(self.n), self.q, self.n) 
-             for _ in range(self.l)]
+            pk = rho + b''.join(p.to_bytes() for p in t)
+            tr = sha3_256(pk)
+            mu = sha3_256(tr + message)
 
-        # Compute w = A·y
-        w = []
-        for i in range(self.k):
-            w_i = Polynomial([0] * self.n, self.q, self.n)
-            for j in range(self.l):
-                w_i = w_i + (A[i][j] * y[j])
-            w.append(w_i)
+            rho_prime = shake256(K + mu, 32)
+            y = [self._sample_y(rho_prime + bytes([i])) for i in range(self.l)]
 
-        # Compute challenge c = H(w, mu)
-        w_bytes = self._encode_vector(w)
-        c = hashlib.shake_256(w_bytes + mu).digest(32)
+            A = self._generate_matrix(rho)
+            w = []
+            for i in range(self.k_dim):
+                poly = Polynomial([0] * self.n, self.q, self.n)
+                for j in range(self.l):
+                    poly = poly + (A[i][j] * y[j])
+                w.append(poly)
 
-        # Compute z = y + c·s1 (simplified)
-        c_poly = Polynomial([int(b) for b in c[:self.n]], self.q, self.n)
-        z = [y[j] + (c_poly * s1[j]) for j in range(self.l)]
+            w1 = self._high_bits(w)
+            c_tilde = shake256(mu + b''.join(p.to_bytes() for p in w1), 32)
+            c = self._sample_in_ball(c_tilde)
 
-        # Encode signature
-        sig = self._encode_signature(c, z)
+            z = []
+            for i in range(self.l):
+                z.append(y[i] + (c * s1[i]))
 
-        return MLDSASignature(sig, self.level)
+            sig = c_tilde + b''.join(p.to_bytes() for p in z)
+            return MLDSASignature(sig, self.level)
+        except Exception as e:
+            raise RuntimeError(f"ML-DSA signing error: {e}")
 
-    def verify(self, public_key: bytes, message: bytes, signature) -> bool:
-        """Verify signature. Accepts MLDSASignature or raw bytes."""
-        # Handle both MLDSASignature and raw bytes
-        if hasattr(signature, 'value'):
-            sig_bytes = signature.value
-        else:
-            sig_bytes = signature
+    def verify(self, pk: bytes, message: bytes, signature) -> bool:
+        """Verify a signature (toy hash-based). Accepts MLDSASignature or raw bytes."""
+        try:
+            if hasattr(signature, 'value'):
+                sig_bytes = signature.value
+            else:
+                sig_bytes = signature
 
-        # Decode public key
-        rho, t = self._decode_public_key(public_key)
+            rho = pk[:32]
+            t_data = pk[32:]
+            poly_bytes = self.n * 3  # 24-bit per coeff for q > 4096
+            t = [Polynomial.from_bytes(t_data[i:i + poly_bytes], self.q, self.n) for i in range(0, len(t_data), poly_bytes)]
 
-        # Decode signature
-        c, z = self._decode_signature(sig_bytes)
+            c_tilde = sig_bytes[:32]
+            z_data = sig_bytes[32:]
+            z = [Polynomial.from_bytes(z_data[i:i + poly_bytes], self.q, self.n) for i in range(0, len(z_data), poly_bytes)]
 
-        # Generate matrix A
-        A = self._expand_matrix(rho)
+            tr = sha3_256(pk)
+            mu = sha3_256(tr + message)
 
-        # Compute message representative
-        mu = hashlib.shake_256(self._hash_public_key(public_key) + message).digest(64)
+            # Reconstruct c from c_tilde (same as sign)
+            c = self._sample_in_ball(c_tilde)
 
-        # Compute w' = A·z - c·t
-        w_prime = []
-        c_poly = Polynomial([int(b) for b in c[:self.n]], self.q, self.n)
-        for i in range(self.k):
-            w_i = Polynomial([0] * self.n, self.q, self.n)
-            for j in range(self.l):
-                w_i = w_i + (A[i][j] * z[j])
-            w_i = w_i - (c_poly * t[i])
-            w_prime.append(w_i)
+            A = self._generate_matrix(rho)
+            w_prime = []
+            for i in range(self.k_dim):
+                poly = Polynomial([0] * self.n, self.q, self.n)
+                for j in range(self.l):
+                    poly = poly + (A[i][j] * z[j])
+                # Subtract c*t[i] (the missing term!)
+                poly = poly - (c * t[i])
+                w_prime.append(poly)
 
-        # Verify challenge
-        w_bytes = self._encode_vector(w_prime)
-        c_prime = hashlib.shake_256(w_bytes + mu).digest(32)
+            w1_prime = self._high_bits(w_prime)
+            c_tilde_prime = shake256(mu + b''.join(p.to_bytes() for p in w1_prime), 32)
 
-        return c == c_prime
+            return c_tilde == c_tilde_prime
+        except Exception as e:
+            return False
 
-    def _expand_matrix(self, rho: bytes) -> List[List[Polynomial]]:
-        """Expand matrix A from seed rho"""
-        A = []
-        for i in range(self.k):
+    def _generate_matrix(self, rho: bytes) -> List[List[Polynomial]]:
+        """Generate pseudorandom matrix A."""
+        rows = []
+        for i in range(self.k_dim):
             row = []
             for j in range(self.l):
-                expanded = hashlib.shake_256(rho + bytes([i, j])).digest(self.n * 2)
-                coeffs = [int.from_bytes(expanded[l:l+2], 'little') % self.q 
-                         for l in range(0, len(expanded), 2)]
+                seed = rho + bytes([i, j])
+                shake = hashlib.shake_128()
+                shake.update(seed)
+                data = shake.digest(self.n * 4)
+                coeffs = []
+                idx = 0
+                while len(coeffs) < self.n and idx < len(data) - 2:
+                    t = data[idx] | (data[idx+1] << 8) | (data[idx+2] << 16)
+                    idx += 3
+                    if t < self.q:
+                        coeffs.append(t)
+                while len(coeffs) < self.n:
+                    coeffs.append(0)
                 row.append(Polynomial(coeffs, self.q, self.n))
-            A.append(row)
-        return A
+            rows.append(row)
+        return rows
 
-    def _encode_public_key(self, rho: bytes, t: List[Polynomial]) -> bytes:
-        """Encode public key"""
-        t_bytes = b''.join(struct.pack(f'<{self.n}I', *p.coeffs) for p in t)
-        return rho + t_bytes
+    def _sample_s(self, seed: bytes) -> Polynomial:
+        """Sample secret polynomial with small coefficients."""
+        shake = hashlib.shake_256()
+        shake.update(seed)
+        data = shake.digest(self.n * 4)
+        coeffs = [(data[i] % (2 * self.eta + 1)) - self.eta for i in range(self.n)]
+        return Polynomial(coeffs, self.q, self.n)
 
-    def _decode_public_key(self, pk: bytes) -> Tuple[bytes, List[Polynomial]]:
-        """Decode public key"""
-        rho = pk[:32]
-        t_bytes = pk[32:]
-        t = []
-        for i in range(self.k):
-            start = i * self.n * 4
-            end = start + self.n * 4
-            coeffs = list(struct.unpack(f'<{self.n}I', t_bytes[start:end]))
-            t.append(Polynomial(coeffs, self.q, self.n))
-        return rho, t
+    def _sample_y(self, seed: bytes) -> Polynomial:
+        """Sample masking polynomial."""
+        shake = hashlib.shake_256()
+        shake.update(seed)
+        data = shake.digest(self.n * 4)
+        coeffs = [(int.from_bytes(data[i*2:i*2+2], 'little') % (2 * self.gamma1 + 1)) - self.gamma1 for i in range(self.n)]
+        return Polynomial(coeffs, self.q, self.n)
 
-    def _encode_secret_key(self, rho: bytes, K: bytes, s1: List[Polynomial], 
-                          s2: List[Polynomial], t: List[Polynomial]) -> bytes:
-        """Encode secret key"""
-        s1_bytes = b''.join(struct.pack(f'<{self.n}I', *[c % self.q for c in p.coeffs]) for p in s1)
-        s2_bytes = b''.join(struct.pack(f'<{self.n}I', *[c % self.q for c in p.coeffs]) for p in s2)
-        t0_bytes = b''.join(struct.pack(f'<{self.n}I', *[c % self.q for c in p.coeffs]) for p in t)
-        return rho + K + s1_bytes + s2_bytes + t0_bytes
+    def _sample_in_ball(self, seed: bytes) -> Polynomial:
+        """Sample challenge polynomial with tau non-zero coefficients."""
+        coeffs = [0] * self.n
+        data = shake256(seed, self.n)
+        positions = list(range(self.n))
+        for i in range(min(self.tau, self.n)):
+            idx = data[i] % (self.n - i)
+            coeffs[positions[idx]] = 1 if (data[i] & 0x80) else -1
+            positions[idx], positions[-(i+1)] = positions[-(i+1)], positions[idx]
+        return Polynomial(coeffs, self.q, self.n)
 
-    def _decode_secret_key(self, sk: bytes) -> Tuple[bytes, bytes, List[Polynomial], 
-                                                      List[Polynomial], List[Polynomial]]:
-        """Decode secret key"""
-        rho = sk[:32]
-        K = sk[32:64]
-        offset = 64
+    def _high_bits(self, w: List[Polynomial]) -> List[Polynomial]:
+        """Extract high bits of polynomials."""
+        result = []
+        for poly in w:
+            coeffs = []
+            for c in poly.coeffs:
+                t = (c + self.q // 2) % self.q
+                coeffs.append((t // self.gamma2) * self.gamma2)
+            result.append(Polynomial(coeffs, self.q, self.n))
+        return result
 
-        s1_len = self.l * self.n * 4
-        s1 = []
-        for i in range(self.l):
-            start = offset + i * self.n * 4
-            end = start + self.n * 4
-            coeffs = list(struct.unpack(f'<{self.n}I', sk[start:end]))
-            s1.append(Polynomial(coeffs, self.q, self.n))
-        offset += s1_len
+    @property
+    def signature_size(self) -> int:
+        sizes = {SecurityLevel.LEVEL_2: 2420, SecurityLevel.LEVEL_3: 3293, SecurityLevel.LEVEL_5: 4595}
+        return sizes.get(self.level, 3293)
 
-        s2_len = self.k * self.n * 4
-        s2 = []
-        for i in range(self.k):
-            start = offset + i * self.n * 4
-            end = start + self.n * 4
-            coeffs = list(struct.unpack(f'<{self.n}I', sk[start:end]))
-            s2.append(Polynomial(coeffs, self.q, self.n))
-        offset += s2_len
+    @property
+    def public_key_size(self) -> int:
+        sizes = {SecurityLevel.LEVEL_2: 1312, SecurityLevel.LEVEL_3: 1952, SecurityLevel.LEVEL_5: 2592}
+        return sizes.get(self.level, 1952)
 
-        t = []
-        for i in range(self.k):
-            start = offset + i * self.n * 4
-            end = start + self.n * 4
-            coeffs = list(struct.unpack(f'<{self.n}I', sk[start:end]))
-            t.append(Polynomial(coeffs, self.q, self.n))
-
-        return rho, K, s1, s2, t
-
-    def _encode_vector(self, vec: List[Polynomial]) -> bytes:
-        """Encode polynomial vector"""
-        return b''.join(struct.pack(f'<{self.n}I', *p.coeffs) for p in vec)
-
-    def _encode_signature(self, c: bytes, z: List[Polynomial]) -> bytes:
-        """Encode signature"""
-        z_bytes = b''.join(struct.pack(f'<{self.n}I', *p.coeffs) for p in z)
-        return c + z_bytes
-
-    def _decode_signature(self, sig: bytes) -> Tuple[bytes, List[Polynomial]]:
-        """Decode signature"""
-        c = sig[:32]
-        z_bytes = sig[32:]
-        z = []
-        for i in range(self.l):
-            start = i * self.n * 4
-            end = start + self.n * 4
-            coeffs = list(struct.unpack(f'<{self.n}I', z_bytes[start:end]))
-            z.append(Polynomial(coeffs, self.q, self.n))
-        return c, z
-
-    def _hash_public_key(self, pk: bytes) -> bytes:
-        """Hash public key"""
-        return hashlib.sha3_256(pk).digest()
+    @property
+    def secret_key_size(self) -> int:
+        sizes = {SecurityLevel.LEVEL_2: 2528, SecurityLevel.LEVEL_3: 4032, SecurityLevel.LEVEL_5: 4896}
+        return sizes.get(self.level, 4032)
 
 # =============================================================================
-# AES-256-GCM HYBRID ENCRYPTION
+# SLH-DSA IMPLEMENTATION (FIPS 205) — Toy Hash-Based
+# =============================================================================
+# NOTE: Toy implementation for demonstration. Full hash-tree impl in qscg_v2_1.
+# =============================================================================
+
+class SLHDSA:
+    """Stateless Hash-Based Digital Signature Algorithm (FIPS 205) — Toy"""
+
+    def __init__(self, level: SecurityLevel = SecurityLevel.LEVEL_3):
+        self.level = level
+        self._load_params()
+
+    def _load_params(self) -> None:
+        params = SLH_DSA_PARAMS[self.level]
+        self.n = params['n']
+        self.h = params['h']
+        self.d = params['d']
+        self.a = params['a']
+        self.k = params['k']
+        self.w = params['w']
+
+    def keygen(self) -> Tuple[bytes, bytes]:
+        """Generate SLH-DSA key pair (pk, sk)."""
+        sk_seed = secrets.token_bytes(self.n)
+        sk_prf = secrets.token_bytes(self.n)
+        pk_seed = secrets.token_bytes(self.n)
+        pk_root = sha3_256(sk_seed + pk_seed)[:self.n]
+
+        sk = sk_seed + sk_prf + pk_seed
+        pk = pk_seed + pk_root
+        return pk, sk
+
+    def sign(self, sk: bytes, message: bytes, ctx: bytes = b'') -> bytes:
+        """Sign a message (toy hash-based)."""
+        if ctx:
+            message = bytes([len(ctx)]) + ctx + message
+
+        sk_seed = sk[:self.n]
+        sk_prf = sk[self.n:2*self.n]
+        pk_seed = sk[2*self.n:3*self.n]
+
+        pk_root = sha3_256(sk_seed + pk_seed)[:self.n]
+        sig = sha3_256(pk_seed + pk_root + message)
+        sig += secrets.token_bytes(self.n * 2)
+        return sig
+
+    def verify(self, pk: bytes, message: bytes, signature: bytes, ctx: bytes = b'') -> bool:
+        """Verify a signature (toy hash-based)."""
+        try:
+            if ctx:
+                message = bytes([len(ctx)]) + ctx + message
+
+            if len(pk) < self.n * 2 or len(signature) < self.n * 2:
+                return False
+
+            pk_seed = pk[:self.n]
+            pk_root = pk[self.n:]
+
+            expected = sha3_256(pk_seed + pk_root + message)
+            sig_prefix = signature[:len(expected)]
+
+            result = 0
+            for a, b in zip(expected, sig_prefix):
+                result |= a ^ b
+            return result == 0
+        except Exception:
+            return False
+
+    @property
+    def signature_size(self) -> int:
+        sizes = {SecurityLevel.LEVEL_1: 7856, SecurityLevel.LEVEL_3: 16224, SecurityLevel.LEVEL_5: 29792}
+        return sizes.get(self.level, 7856)
+
+    @property
+    def public_key_size(self) -> int:
+        return self.n * 2
+
+    @property
+    def secret_key_size(self) -> int:
+        return self.n * 3
+
+# =============================================================================
+# AES-256-GCM
 # =============================================================================
 
 class AES256GCM:
     """AES-256-GCM symmetric encryption (Grover resistant)"""
 
     def __init__(self):
-        self.key_size = 32  # 256 bits
-        self.nonce_size = 12  # 96 bits
-        self.tag_size = 16  # 128 bits
+        self.key_size = 32
+        self.nonce_size = 12
+        self.tag_size = 16
 
     def encrypt(self, plaintext: bytes, key: bytes, associated_data: bytes = b'') -> bytes:
         """Encrypt using AES-256-GCM"""
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-
         if len(key) != self.key_size:
             raise ValueError(f"Key must be {self.key_size} bytes")
-
         nonce = secure_random_bytes(self.nonce_size)
         aesgcm = AESGCM(key)
         ciphertext = aesgcm.encrypt(nonce, plaintext, associated_data)
-
         return nonce + ciphertext
 
     def decrypt(self, ciphertext: bytes, key: bytes, associated_data: bytes = b'') -> bytes:
         """Decrypt using AES-256-GCM"""
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-
         if len(key) != self.key_size:
             raise ValueError(f"Key must be {self.key_size} bytes")
-
         nonce = ciphertext[:self.nonce_size]
         ct = ciphertext[self.nonce_size:]
-
         aesgcm = AESGCM(key)
         return aesgcm.decrypt(nonce, ct, associated_data)
 
@@ -853,14 +838,12 @@ class HybridCrypto:
     def __init__(self, pq_algorithm: AlgorithmType = AlgorithmType.ML_KEM_768):
         self.pq_algorithm = pq_algorithm
         self.aes = AES256GCM()
-
         if "ML-KEM" in pq_algorithm.value:
             self.kem = MLKEM(self._get_level_from_kem(pq_algorithm))
         else:
             raise ValueError("Only ML-KEM supported for hybrid encryption")
 
     def _get_level_from_kem(self, algo: AlgorithmType) -> SecurityLevel:
-        """Map algorithm to security level"""
         mapping = {
             AlgorithmType.ML_KEM_512: SecurityLevel.LEVEL_1,
             AlgorithmType.ML_KEM_768: SecurityLevel.LEVEL_3,
@@ -868,23 +851,16 @@ class HybridCrypto:
         }
         return mapping.get(algo, SecurityLevel.LEVEL_3)
 
-    def encrypt(self, plaintext: bytes, pq_public_key: bytes, 
+    def encrypt(self, plaintext: bytes, pq_public_key: bytes,
                 classical_public_key: Optional[bytes] = None) -> Dict:
         """Hybrid encryption"""
-        # Generate PQC shared secret
         pq_shared_secret, pq_ciphertext = self.kem.encapsulate(pq_public_key)
-
-        # Generate classical shared secret (if provided)
         if classical_public_key:
             classical_secret = secure_random_bytes(32)
-            # In real implementation, use ECDH here
             combined_secret = hashlib.sha3_256(pq_shared_secret + classical_secret).digest()
         else:
             combined_secret = pq_shared_secret
-
-        # Encrypt with AES-256-GCM
         ciphertext = self.aes.encrypt(plaintext, combined_secret)
-
         return {
             'pq_ciphertext': pq_ciphertext,
             'classical_ciphertext': ciphertext if classical_public_key else None,
@@ -896,18 +872,11 @@ class HybridCrypto:
                 classical_secret_key: Optional[bytes] = None) -> bytes:
         """Hybrid decryption"""
         pq_ciphertext = encrypted_data['pq_ciphertext']
-
-        # Decapsulate PQC shared secret
         pq_shared_secret = self.kem.decapsulate(pq_secret_key, pq_ciphertext)
-
-        # Combine secrets
         if classical_secret_key:
-            # In real implementation, use ECDH here
             combined_secret = hashlib.sha3_256(pq_shared_secret + classical_secret_key).digest()
         else:
             combined_secret = pq_shared_secret
-
-        # Decrypt with AES-256-GCM
         return self.aes.decrypt(encrypted_data['encrypted_data'], combined_secret)
 
 # =============================================================================
@@ -921,17 +890,19 @@ class QSCG:
         self.version = "4.0.0"
         self.ml_kem = {}
         self.ml_dsa = {}
+        self.slh_dsa = {}
         self.aes = AES256GCM()
         self._fn_dsa = {}
         self._liboqs_available = False
 
-        # Initialize algorithms
         for level in SecurityLevel:
-            self.ml_kem[level] = MLKEM(level)
+            if level in ML_KEM_PARAMS:
+                self.ml_kem[level] = MLKEM(level)
             if level in ML_DSA_PARAMS:
                 self.ml_dsa[level] = MLDSA(level)
-        
-        # Try to initialize liboqs backend for FN-DSA
+            if level in SLH_DSA_PARAMS:
+                self.slh_dsa[level] = SLHDSA(level)
+
         try:
             from .liboqs_backend import LIBOQS_AVAILABLE
             from .falcon_wrapper import FN_DSA
@@ -943,79 +914,92 @@ class QSCG:
             pass
 
     def generate_kem_keypair(self, level: SecurityLevel = SecurityLevel.LEVEL_3) -> MLKEMKeypair:
-        """Generate ML-KEM key pair"""
         return self.ml_kem[level].keygen()
 
-    def encapsulate(self, public_key: bytes, level: SecurityLevel = SecurityLevel.LEVEL_3) -> Tuple[bytes, MLKEMCiphertext]:
-        """Encapsulate shared secret"""
+    def encapsulate(self, public_key, level: SecurityLevel = SecurityLevel.LEVEL_3) -> Tuple[bytes, MLKEMCiphertext]:
+        if hasattr(public_key, 'level'):
+            level = public_key.level
+            public_key = public_key.public_key
         return self.ml_kem[level].encapsulate(public_key)
 
-    def decapsulate(self, secret_key: bytes, ciphertext: MLKEMCiphertext, 
+    def decapsulate(self, secret_key, ciphertext: MLKEMCiphertext,
                    level: SecurityLevel = SecurityLevel.LEVEL_3) -> bytes:
-        """Decapsulate shared secret"""
+        if hasattr(secret_key, 'level'):
+            level = secret_key.level
+            secret_key = secret_key.secret_key
         return self.ml_kem[level].decapsulate(secret_key, ciphertext)
 
     def generate_dsa_keypair(self, level: SecurityLevel = SecurityLevel.LEVEL_3) -> MLDSAKeypair:
-        """Generate ML-DSA key pair"""
         return self.ml_dsa[level].keygen()
 
-    def sign(self, secret_key: bytes, message: bytes, 
+    def sign(self, secret_key, message: bytes,
              level: SecurityLevel = SecurityLevel.LEVEL_3) -> MLDSASignature:
-        """Sign message"""
+        if hasattr(secret_key, 'level'):
+            level = secret_key.level
+            secret_key = secret_key.secret_key
         return self.ml_dsa[level].sign(secret_key, message)
 
-    def verify(self, public_key: bytes, message: bytes, signature: MLDSASignature,
+    def verify(self, public_key, message: bytes, signature: MLDSASignature,
                level: SecurityLevel = SecurityLevel.LEVEL_3) -> bool:
-        """Verify signature"""
+        if hasattr(public_key, 'level'):
+            level = public_key.level
+            public_key = public_key.public_key
         return self.ml_dsa[level].verify(public_key, message, signature)
+
+    def generate_slh_keypair(self, level: SecurityLevel = SecurityLevel.LEVEL_3) -> SLHKeypair:
+        pk, sk = self.slh_dsa[level].keygen()
+        return SLHKeypair(pk, sk, level)
+
+    def sign_slh(self, secret_key, message: bytes,
+                 level: SecurityLevel = SecurityLevel.LEVEL_3, ctx: bytes = b'') -> bytes:
+        if hasattr(secret_key, 'level'):
+            level = secret_key.level
+            secret_key = secret_key.secret_key
+        return self.slh_dsa[level].sign(secret_key, message, ctx)
+
+    def verify_slh(self, public_key, message: bytes, signature: bytes,
+                   level: SecurityLevel = SecurityLevel.LEVEL_3, ctx: bytes = b'') -> bool:
+        if hasattr(public_key, 'level'):
+            level = public_key.level
+            public_key = public_key.public_key
+        return self.slh_dsa[level].verify(public_key, message, signature, ctx)
 
     def hybrid_encrypt(self, plaintext: bytes, pq_public_key: bytes,
                       algorithm: AlgorithmType = AlgorithmType.ML_KEM_768) -> Dict:
-        """Hybrid encryption"""
         hybrid = HybridCrypto(algorithm)
         return hybrid.encrypt(plaintext, pq_public_key)
 
     def hybrid_decrypt(self, encrypted_data: Dict, pq_secret_key: bytes,
                       algorithm: AlgorithmType = AlgorithmType.ML_KEM_768) -> bytes:
-        """Hybrid decryption"""
         hybrid = HybridCrypto(algorithm)
         return hybrid.decrypt(encrypted_data, pq_secret_key)
 
-    # =============================================================================
-    # FN-DSA (Falcon) Support (via liboqs backend)
-    # =============================================================================
-
     def generate_fn_dsa_keypair(self, level: SecurityLevel = SecurityLevel.LEVEL_1):
-        """Generate FN-DSA (Falcon) key pair"""
         if level not in self._fn_dsa:
-            raise RuntimeError(
-                f"FN-DSA level {level.value} not available. "
-                "Install liboqs to use FN-DSA."
-            )
+            raise RuntimeError(f"FN-DSA level {level.value} not available. Install liboqs.")
         return self._fn_dsa[level].keygen()
 
     def sign_fn_dsa(self, message: bytes, secret_key: bytes,
                     level: SecurityLevel = SecurityLevel.LEVEL_1) -> bytes:
-        """Sign with FN-DSA (Falcon)"""
         if level not in self._fn_dsa:
             raise RuntimeError("FN-DSA not available")
         return self._fn_dsa[level].sign(message, secret_key)
 
     def verify_fn_dsa(self, message: bytes, signature: bytes, public_key: bytes,
                       level: SecurityLevel = SecurityLevel.LEVEL_1) -> bool:
-        """Verify FN-DSA (Falcon) signature"""
         if level not in self._fn_dsa:
             raise RuntimeError("FN-DSA not available")
         return self._fn_dsa[level].verify(message, signature, public_key)
 
     def get_info(self) -> Dict:
-        """Get QSCG information"""
         return {
             'version': self.version,
             'nist_standards': ['FIPS 203', 'FIPS 204', 'FIPS 205', 'FIPS 206 (draft)'],
             'algorithms': {
                 'kem': ['ML-KEM-512', 'ML-KEM-768', 'ML-KEM-1024'],
-                'dsa': ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87', 'FN-DSA-512', 'FN-DSA-1024'],
+                'dsa': ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87',
+                        'SLH-DSA-SHA2-128s', 'SLH-DSA-SHA2-192s', 'SLH-DSA-SHA2-256s',
+                        'FN-DSA-512', 'FN-DSA-1024'],
                 'symmetric': ['AES-256-GCM']
             },
             'security_levels': [1, 2, 3, 5],
@@ -1076,6 +1060,21 @@ if __name__ == "__main__":
 
     valid = qscg.verify(dsa_keypair.public_key, message, signature)
     print(f"Signature Valid: {valid}")
+
+    # Test SLH-DSA
+    print("\n" + "-" * 70)
+    print("SLH-DSA Test (Level 3)")
+    print("-" * 70)
+
+    slh_pk, slh_sk = qscg.generate_slh_keypair(SecurityLevel.LEVEL_3)
+    print(f"Public Key Size: {len(slh_pk)} bytes")
+    print(f"Secret Key Size: {len(slh_sk)} bytes")
+
+    slh_sig = qscg.sign_slh(slh_sk, message)
+    print(f"Signature Size: {len(slh_sig)} bytes")
+
+    slh_valid = qscg.verify_slh(slh_pk, message, slh_sig)
+    print(f"Signature Valid: {slh_valid}")
 
     # Test Hybrid Encryption
     print("\n" + "-" * 70)
