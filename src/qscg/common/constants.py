@@ -4,6 +4,12 @@ This module defines shared constants used across ML-KEM (FIPS 203),
 ML-DSA (FIPS 204), and SLH-DSA (FIPS 205) implementations.
 """
 
+__version__ = "3.0.0"
+"""Package version string (PEP 440)."""
+
+__author__ = "M.Cem Koca {Deuterium12}"
+__license__ = "MIT"
+
 from enum import Enum
 
 # ---------------------------------------------------------------------------
@@ -86,13 +92,46 @@ MLDSA_BETA: dict = {44: 78, 65: 196, 87: 120}
 MLDSA_OMEGA: dict = {44: 80, 65: 80, 87: 128}
 """Max number of 1s in the hint polynomial."""
 
-# Full parameter sets (FIPS 204, Table 1)
-MLDSA_PARAMS = {
-    44: {"k": 4, "l": 4, "eta": 2, "tau": 39, "gamma1": 2**17, "gamma2": 95232, "omega": 80, "beta": 78},
-    65: {"k": 6, "l": 5, "eta": 4, "tau": 49, "gamma1": 2**19, "gamma2": 261888, "omega": 80, "beta": 196},
-    87: {"k": 8, "l": 7, "eta": 2, "tau": 60, "gamma1": 2**19, "gamma2": 261888, "omega": 128, "beta": 120},
+# Combined parameter sets for ML-DSA (indexed by SecurityLevel)
+MLDSA_PARAMS: dict = {
+    SecurityLevel.LEVEL_1: {
+        "param_id": 44,
+        "tau": 39,
+        "gamma1": 2**17,
+        "gamma2": 95232,
+        "k": 4,
+        "l": 4,
+        "eta": 2,
+        "beta": 78,
+        "omega": 80,
+        "d": 13,
+    },
+    SecurityLevel.LEVEL_3: {
+        "param_id": 65,
+        "tau": 49,
+        "gamma1": 2**19,
+        "gamma2": 261888,
+        "k": 6,
+        "l": 5,
+        "eta": 4,
+        "beta": 196,
+        "omega": 80,
+        "d": 13,
+    },
+    SecurityLevel.LEVEL_5: {
+        "param_id": 87,
+        "tau": 60,
+        "gamma1": 2**19,
+        "gamma2": 261888,
+        "k": 8,
+        "l": 7,
+        "eta": 2,
+        "beta": 120,
+        "omega": 128,
+        "d": 13,
+    },
 }
-"""ML-DSA parameter sets keyed by parameter set identifier (44, 65, 87)."""
+"""Complete ML-DSA parameter sets indexed by SecurityLevel."""
 
 # ---------------------------------------------------------------------------
 # SLH-DSA constants (FIPS 205)
@@ -124,3 +163,43 @@ SLHDSA_LEN2: int = 3
 
 SLHDSA_LEN: int = SLHDSA_LEN1 + SLHDSA_LEN2
 """Total number of WOTS+ chains."""
+
+
+# SLH-DSA parameter sets indexed by SecurityLevel (FIPS 205).
+# Using SHA2 'f' (fast) variants: larger signatures, faster signing.
+SLHDSA_PARAMS = {
+    SecurityLevel.LEVEL_1: {
+        "n": 16,      # Security parameter (hash output length)
+        "h": 66,      # Hypertree height
+        "d": 22,      # Number of hypertree layers
+        "a": 6,       # FORS tree height
+        "k": 33,      # Number of FORS trees
+        "w": 16,      # Winternitz parameter
+        "len1": 32,   # WOTS+ message digits
+        "len2": 3,    # WOTS+ checksum digits
+        "len": 35,    # Total WOTS+ chains (len1 + len2)
+    },
+    SecurityLevel.LEVEL_3: {
+        "n": 24,
+        "h": 66,
+        "d": 22,
+        "a": 8,
+        "k": 33,
+        "w": 16,
+        "len1": 48,
+        "len2": 3,
+        "len": 51,
+    },
+    SecurityLevel.LEVEL_5: {
+        "n": 32,
+        "h": 68,
+        "d": 17,
+        "a": 9,
+        "k": 35,
+        "w": 16,
+        "len1": 64,
+        "len2": 3,
+        "len": 67,
+    },
+}
+"""SLH-DSA parameter sets (FIPS 205, Table 1) — SHA2 'f' (fast) variants."""

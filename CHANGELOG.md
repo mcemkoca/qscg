@@ -7,6 +7,7 @@
 - **GitHub Ruleset** activated on `main` — PR + 1 review + 7 required status checks + force-push/deletion protection
 - Fixed project structure docs to match actual file tree (`src/qscg/`, `quantum_safe_crypto/`, `diagrams/`)
 - Added "What's New" summary table with stability indicators (Stable / Experimental / WIP)
+- Merged upstream: SLH-DSA full implementation, quantum modules (QKD BB84, QRNG, TLS tunnel), py.typed marker
 
 ## v3.0.0 - 2026-05-20
 

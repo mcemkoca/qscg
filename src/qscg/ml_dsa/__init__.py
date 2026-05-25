@@ -1,35 +1,50 @@
-"""ML-DSA (FIPS 204) implementation package.
+"""ML-DSA (Module-Lattice-Based Digital Signature Algorithm).
 
-Sub-modules
------------
-ntt.py:
-    Complete 8-layer NTT for ML-DSA modulus q = 8380417.
-encode.py:
-    Bit-packing routines for keys and signatures.
-polynomial.py:
-    Polynomial ring arithmetic and vector operations.
-sampling.py:
-    ExpandA, ExpandS, SampleInBall, and masking vector sampling.
-ml_dsa.py:
-    Main ML-DSA class with KeyGen, Sign, and Verify.
+This package implements the NIST FIPS 204 ML-DSA scheme with three
+parameter sets:
 
-Typical usage::
+    - ML-DSA-44 — NIST security category 2 (``LEVEL_1``)
+    - ML-DSA-65 — NIST security category 3 (``LEVEL_3``)
+    - ML-DSA-87 — NIST security category 5 (``LEVEL_5``)
 
-    >>> from qscg.ml_dsa.ml_dsa import MLDSA
+The public API is provided by :class:`.ml_dsa.MLDSA`, which wraps
+key generation, signing, and verification in a single object.
+
+Example::
+
+    >>> from qscg.ml_dsa import MLDSA
     >>> from qscg.common.constants import SecurityLevel
-    >>> dsa = MLDSA(SecurityLevel.LEVEL_3)
-    >>> pk, sk = dsa.keygen()
-    >>> sig = dsa.sign(sk, b"Quantum-safe message")
-    >>> assert dsa.verify(pk, b"Quantum-safe message", sig)
+    >>> mldsa = MLDSA(SecurityLevel.LEVEL_3)
+    >>> pk, sk = mldsa.keygen()
+    >>> msg = b"Hello, post-quantum world!"
+    >>> sig = mldsa.sign(sk, msg)
+    >>> assert mldsa.verify(pk, msg, sig)
+
+Low-level functions and classes are also exported for advanced use.
 """
 
-from .ml_dsa import MLDSA
+from .encode import BitPack, HintBitPack, SimpleBitPack
+from .ml_dsa import MLDSA, MLDSA_KeyGen, MLDSA_Sign, MLDSA_Verify
+from .polynomial import Polynomial, PolyVector
+from .sampling import ExpandA, ExpandMask, ExpandS, SampleInBall
 
 __all__ = [
-    "ntt",
-    "polynomial",
-    "sampling",
-    "encode",
-    "ml_dsa",
+    # High-level interface
     "MLDSA",
+    # Low-level algorithms
+    "MLDSA_KeyGen",
+    "MLDSA_Sign",
+    "MLDSA_Verify",
+    # Polynomial arithmetic
+    "Polynomial",
+    "PolyVector",
+    # Sampling primitives
+    "SampleInBall",
+    "ExpandA",
+    "ExpandS",
+    "ExpandMask",
+    # Encoding
+    "SimpleBitPack",
+    "BitPack",
+    "HintBitPack",
 ]
