@@ -49,7 +49,7 @@
 For environments that can drop classical cryptography entirely (internal government networks, air-gapped systems):
 
 ```python
-from qscg import MLKEM, MLDSA, AES256GCM, SecurityLevel
+from qscg_v2_1_final import MLKEM, MLDSA, AES256GCM, SecurityLevel
 
 # Key exchange: ML-KEM-768 (CNSA 2.0 recommended)
 kem = MLKEM(level=SecurityLevel.LEVEL_3)
@@ -58,7 +58,7 @@ kem = MLKEM(level=SecurityLevel.LEVEL_3)
 dsa = MLDSA(level=SecurityLevel.LEVEL_3)
 
 # Symmetric: AES-256-GCM (already quantum-safe via key size)
-aes = AES256GCM.generate_key()
+key = AES256GCM.generate_key()
 ```
 
 > **Note:** CNSA 2.0 recommends ML-KEM-768 and ML-DSA-65 for most use cases. Level 5 (ML-KEM-1024 / ML-DSA-87) is reserved for especially sensitive data.
