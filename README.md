@@ -4,7 +4,11 @@
 
 # QSCG — Quantum-Safe Cryptography GitHub
 
-**Research & educational toolkit for post-quantum cryptography (NIST FIPS 203/204/205)**
+**A Python toolkit for post-quantum cryptography — because RSA's days are numbered.**
+
+I started this project in late 2024, right after NIST published the first three PQC standards (FIPS 203, 204, 205). At the time, almost no Python library had a clean, from-scratch implementation of ML-KEM, ML-DSA, and SLH-DSA that you could actually read and learn from. Most options were thin wrappers around C code. I wanted something different: a codebase where you can trace every polynomial multiplication, every NTT butterfly, every hash invocation, and understand *why* it works.
+
+Three years later, QSCG is a working reference implementation, a testbed for hybrid protocols, and (hopefully) a decent starting point for anyone who wants to understand lattice-based cryptography without drowning in assembly or opaque optimized libraries.
 
 [![NIST FIPS 203](https://img.shields.io/badge/NIST-FIPS%20203-blue?style=flat-square&logo=gnuprivacyguard)](https://csrc.nist.gov/pubs/fips/203/final)
 [![NIST FIPS 204](https://img.shields.io/badge/NIST-FIPS%20204-blue?style=flat-square&logo=gnuprivacyguard)](https://csrc.nist.gov/pubs/fips/204/final)
@@ -308,8 +312,8 @@ MIT License — see [`LICENSE`](LICENSE).
 
 <div align="center">
 
-**Built with ❤️ by [M. Cem Koca](https://github.com/mcemkoca)**
+**Crafted by [deuterium12](https://github.com/mcemkoca) (M. Cem Koca)**
 
-⭐ Star if this helps you explore post-quantum cryptography!
+If you found this useful, a ⭐ on GitHub is the best tip jar I know of. If something's broken or unclear, open an issue — I read every single one.
 
 </div>

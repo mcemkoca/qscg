@@ -79,6 +79,7 @@ oqs_pip_report.json
 ruleset.json
 docs/DEEP_ANALYSIS_*.md
 qscg-research/
+.tmp/
 
 # Submodule remnants (should not exist)
 qscg/

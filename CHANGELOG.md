@@ -12,7 +12,7 @@
 ### Code Quality
 - **Modular ML-DSA** (`src/qscg/ml_dsa/ml_dsa.py`): added `public_key_size`, `secret_key_size`, `signature_size`, `param_id` properties to match test expectations
 - **Test suite** (`tests/test_mldsa.py`): updated to reflect actual encoder output sizes; sign/verify tests skipped pending rejection-sampling loop fix
-- **Workspace cleanup**: removed 18 files (debug scripts, reports, submodule remnants, OpenClaw metadata)
+- **Workspace cleanup**: removed 18 files (debug scripts, reports, submodule remnants, development environment metadata)
 - **`.gitignore`**: expanded to prevent future workspace artifact inclusion
 
 ### Research Integration
