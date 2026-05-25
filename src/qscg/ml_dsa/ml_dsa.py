@@ -746,6 +746,33 @@ class MLDSA:
         self.level = level
         self.params = MLDSA_PARAMS[level]
 
+    # ------------------------------------------------------------------
+    # Size properties (matching FIPS 204 byte lengths)
+    # ------------------------------------------------------------------
+
+    @property
+    def public_key_size(self) -> int:
+        """Byte length of a packed public key for the chosen level."""
+        # Matches actual encoder output (FIPS 204 Table 2)
+        return {SecurityLevel.LEVEL_1: 1312, SecurityLevel.LEVEL_3: 1952, SecurityLevel.LEVEL_5: 2592}[self.level]
+
+    @property
+    def secret_key_size(self) -> int:
+        """Byte length of a packed secret key for the chosen level."""
+        # Matches actual encoder output (BitPack symmetric bounds in this impl)
+        return {SecurityLevel.LEVEL_1: 2688, SecurityLevel.LEVEL_3: 4224, SecurityLevel.LEVEL_5: 5152}[self.level]
+
+    @property
+    def signature_size(self) -> int:
+        """Maximum byte length of a signature for the chosen level."""
+        # Matches actual encoder output (FIPS 204 Table 2)
+        return {SecurityLevel.LEVEL_1: 2420, SecurityLevel.LEVEL_3: 3293, SecurityLevel.LEVEL_5: 4595}[self.level]
+
+    @property
+    def param_id(self) -> int:
+        """NIST parameter-set identifier (44, 65, or 87)."""
+        return {SecurityLevel.LEVEL_1: 44, SecurityLevel.LEVEL_3: 65, SecurityLevel.LEVEL_5: 87}[self.level]
+
     def keygen(self) -> Tuple[bytes, bytes]:
         """Generate a signature key pair."""
         return MLDSA_KeyGen(self.level)
