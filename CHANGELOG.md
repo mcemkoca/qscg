@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.0.1 - 2026-05-25
+
+### Repository & Documentation
+- **README.md** completely rewritten — clearer hierarchy, honest status labels, accurate project structure, reduced badge noise
+- **GitHub Ruleset** activated on `main` — PR + 1 review + 7 required status checks + force-push/deletion protection
+- Fixed project structure docs to match actual file tree (`src/qscg/`, `quantum_safe_crypto/`, `diagrams/`)
+- Added "What's New" summary table with stability indicators (Stable / Experimental / WIP)
+
 ## v3.0.0 - 2026-05-20
 
 ### Added
