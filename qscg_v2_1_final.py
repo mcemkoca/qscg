@@ -13,14 +13,14 @@ Features:
     - Educational NTT implementation with mathematical transparency
     - Comprehensive CLI interface
 
-Author: Mehmet Cem Koca (mcemkoca)
+Author: deuterium12 (M.Cem Koca)
 License: MIT
 Version: 2.2.0
 Repository: https://github.com/mcemkoca/qscg
 """
 
 __version__ = "2.2.0"
-__author__ = "Mehmet Cem Koca (mcemkoca)"
+__author__ = "deuterium12 (M.Cem Koca)"
 __license__ = "MIT"
 __all__ = [
     "SecurityLevel", "MLKEM", "MLDSA", "SLHDSA", "AES256GCM",

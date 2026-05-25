@@ -4,7 +4,7 @@ setup(
     name="qscg",
     version="3.0.0",
     description="Quantum-Safe Cryptography Toolkit - Post-Quantum Algorithms",
-    author="Mehmet Cem Koca",
+    author="deuterium12 (M.Cem Koca)",
     author_email="mcemkoca@proton.me",
     url="https://github.com/mcemkoca/qscg",
     packages=find_packages(),
