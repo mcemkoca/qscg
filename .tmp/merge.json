@@ -1,0 +1,1 @@
+{"query":"mutation MergePR($id:ID!){mergePullRequest(input:{pullRequestId:$id,mergeMethod:SQUASH}){pullRequest{merged mergedBy{login}}}}","variables":{"id":"PR_kwDOSffcys6Mn0UA"}}

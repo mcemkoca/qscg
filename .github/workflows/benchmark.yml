@@ -1,0 +1,63 @@
+name: Benchmark
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest-benchmark
+
+      - name: Run benchmarks
+        run: |
+          python -m pytest benchmarks/ --benchmark-only --benchmark-json=benchmark-results.json -v --tb=short
+        continue-on-error: true
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark-results.json
+          retention-days: 30
+
+      - name: Display benchmark summary
+        run: |
+          if [ -f benchmark-results.json ]; then
+            python -c "
+import json, sys
+try:
+    with open('benchmark-results.json') as f:
+        data = json.load(f)
+    print('\\n=== QSCG Benchmark Summary ===\\n')
+    for bench in data.get('benchmarks', []):
+        name = bench['name']
+        mean = bench['stats']['mean'] * 1000  # ms
+        print(f'{name:60s} {mean:8.2f} ms')
+except Exception as e:
+    print(f'Could not parse results: {e}')
+"
+          else
+            echo "No benchmark results generated (benchmarks may have timed out)"
+          fi
+        shell: bash
