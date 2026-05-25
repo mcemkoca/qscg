@@ -12,7 +12,7 @@ Usage:
 """
 
 __version__ = "3.0.0"
-__author__ = "Mehmet Cem Koca (mcemkoca)"
+__author__ = "deuterium12 (M.Cem Koca)"
 __license__ = "MIT"
 __all__ = [
     "SecurityLevel",
