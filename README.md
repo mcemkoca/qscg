@@ -32,6 +32,7 @@ Three years later, QSCG is a working reference implementation, a testbed for hyb
   <img src="https://img.shields.io/badge/python-3.9%2B-blue?style=flat-square&logo=python&logoColor=white" alt="Python 3.9+">
   <img src="https://img.shields.io/github/license/mcemkoca/qscg?style=flat-square&logo=open-source-initiative&logoColor=white" alt="MIT License">
   <img src="https://img.shields.io/badge/tests-pytest-blue?style=flat-square&logo=pytest&logoColor=white" alt="Tests: pytest">
+  <img src="https://img.shields.io/badge/CNSA%202.0-partial-yellow?style=flat-square&logo=nsa&logoColor=white" alt="CNSA 2.0: Partial">
 </p>
 
 ---
