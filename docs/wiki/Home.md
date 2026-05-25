@@ -181,7 +181,7 @@ qscg --nist
 | **Python Support** | 3.9, 3.10, 3.11, 3.12 |
 | **NIST Standards** | FIPS 203, FIPS 204, FIPS 205 (Final) |
 | **License** | MIT License |
-| **Author** | M.C. Emre Koca (mcemkoca) |
+| **Author** | deuterium12 (M. Cem Koca) |
 
 ### Changelog (v2.2.0)
 

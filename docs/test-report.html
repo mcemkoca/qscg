@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QSCG Test Report</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --bg-elevated: #161b22;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --text-muted: #8b949e;
+            --success: #3fb950;
+            --warning: #d29922;
+            --danger: #f85149;
+            --info: #58a6ff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .subtitle { color: var(--text-muted); margin-bottom: 2rem; }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .card .number { font-size: 2.5rem; font-weight: 700; }
+        .card .label { color: var(--text-muted); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .passed { color: var(--success); }
+        .skipped { color: var(--warning); }
+        .failed { color: var(--danger); }
+        .total { color: var(--info); }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: rgba(48, 54, 61, 0.5); font-weight: 600; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+        tr:hover { background: rgba(48, 54, 61, 0.3); }
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-pass { background: rgba(63, 185, 80, 0.15); color: var(--success); }
+        .badge-skip { background: rgba(210, 153, 34, 0.15); color: var(--warning); }
+        .badge-fail { background: rgba(248, 81, 73, 0.15); color: var(--danger); }
+        .progress-bar {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--success);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        .footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+        }
+        .details { font-family: 'SF Mono', Monaco, monospace; font-size: 0.8rem; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <h1>🧪 QSCG Test Report</h1>
+    <p class="subtitle">Quantum-Safe Cryptography GitHub — Full Test Suite Results</p>
+
+    <div class="summary-grid">
+        <div class="card">
+            <div class="number total">247</div>
+            <div class="label">Total Tests</div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 100%"></div></div>
+        </div>
+        <div class="card">
+            <div class="number passed">239</div>
+            <div class="label">Passed</div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 96.8%"></div></div>
+        </div>
+        <div class="card">
+            <div class="number skipped">8</div>
+            <div class="label">Skipped</div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 3.2%; background: var(--warning)"></div></div>
+        </div>
+        <div class="card">
+            <div class="number failed">0</div>
+            <div class="label">Failed</div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 0%; background: var(--danger)"></div></div>
+        </div>
+    </div>
+
+    <h2>📊 Suite Breakdown</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Test File</th>
+                <th>Passed</th>
+                <th>Skipped</th>
+                <th>Failed</th>
+                <th>Total</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>test_qscg.py</code></td>
+                <td>132</td>
+                <td>0</td>
+                <td>0</td>
+                <td>132</td>
+                <td><span class="badge badge-pass">PASS</span></td>
+            </tr>
+            <tr>
+                <td><code>test_fndsa.py</code></td>
+                <td>17</td>
+                <td>0</td>
+                <td>0</td>
+                <td>17</td>
+                <td><span class="badge badge-pass">PASS</span></td>
+            </tr>
+            <tr>
+                <td><code>test_hqc.py</code></td>
+                <td>17</td>
+                <td>0</td>
+                <td>0</td>
+                <td>17</td>
+                <td><span class="badge badge-pass">PASS</span></td>
+            </tr>
+            <tr>
+                <td><code>test_hqc_v2.py</code></td>
+                <td>9</td>
+                <td>0</td>
+                <td>0</td>
+                <td>9</td>
+                <td><span class="badge badge-pass">PASS</span></td>
+            </tr>
+            <tr>
+                <td><code>test_mldsa.py</code></td>
+                <td>4</td>
+                <td>7</td>
+                <td>0</td>
+                <td>11</td>
+                <td><span class="badge badge-skip">SKIP</span></td>
+            </tr>
+            <tr>
+                <td><code>test_ntru_ntt.py</code></td>
+                <td>13</td>
+                <td>1</td>
+                <td>0</td>
+                <td>14</td>
+                <td><span class="badge badge-pass">PASS</span></td>
+            </tr>
+            <tr>
+                <td><code>test_protocols.py</code></td>
+                <td>14</td>
+                <td>0</td>
+                <td>0</td>
+                <td>14</td>
+                <td><span class="badge badge-pass">PASS</span></td>
+            </tr>
+            <tr>
+                <td><code>test_quantum_threat.py</code></td>
+                <td>12</td>
+                <td>0</td>
+                <td>0</td>
+                <td>12</td>
+                <td><span class="badge badge-pass">PASS</span></td>
+            </tr>
+            <tr>
+                <td><code>test_reed_muller.py</code></td>
+                <td>21</td>
+                <td>0</td>
+                <td>0</td>
+                <td>21</td>
+                <td><span class="badge badge-pass">PASS</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>⚠️ Skipped Tests</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Test</th>
+                <th>Reason</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>test_mldsa.py::TestMLDSASignVerify</code> (7 tests)</td>
+                <td>Modular ML-DSA sign/verify hangs in rejection sampling loop — tracked as known issue. Monolithic implementation passes all sign/verify tests.</td>
+            </tr>
+            <tr>
+                <td><code>test_ntru_ntt.py::TestNTRUKeypair::test_sign_verify</code></td>
+                <td>NTRU sign/verify implementation incomplete</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>⏱️ Slowest Tests</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Test</th>
+                <th>Duration</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td><code>test_hqc_v2.py::test_decaps_produces_secret</code></td><td>3.97s</td></tr>
+            <tr><td><code>test_qscg.py::test_sign_produces_valid_signature[L5]</code></td><td>1.39s</td></tr>
+            <tr><td><code>test_hqc_v2.py::test_encaps_produces_ciphertext</code></td><td>1.31s</td></tr>
+            <tr><td><code>test_qscg.py::test_sign_different_messages[L5]</code></td><td>1.28s</td></tr>
+            <tr><td><code>test_qscg.py::test_verify_tampered_message[L5]</code></td><td>1.24s</td></tr>
+        </tbody>
+    </table>
+
+    <h2>🔬 What's Tested</h2>
+    <table>
+        <thead>
+            <tr><th>Algorithm</th><th>Standard</th><th>Coverage</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>ML-KEM</strong></td><td>FIPS 203</td><td>KeyGen, Encaps, Decaps, all 3 levels, wrong-key handling, multiple rounds</td></tr>
+            <tr><td><strong>ML-DSA (monolithic)</strong></td><td>FIPS 204</td><td>KeyGen, Sign, Verify, tamper resistance, all 3 levels</td></tr>
+            <tr><td><strong>ML-DSA (modular)</strong></td><td>FIPS 204</td><td>KeyGen, size properties — sign/verify skipped (known issue)</td></tr>
+            <tr><td><strong>SLH-DSA</strong></td><td>FIPS 205</td><td>KeyGen, Sign, Verify, context separation, tamper resistance, all 3 levels</td></tr>
+            <tr><td><strong>AES-256-GCM</strong></td><td>NIST SP 800-38D</td><td>Encrypt/decrypt, AAD, empty messages, wrong key rejection, nonce uniqueness</td></tr>
+            <tr><td><strong>HQC</strong></td><td>NIST IR 8545</td><td>KeyGen, Encaps/Decaps, ciphertext manipulation, all 3 levels</td></tr>
+            <tr><td><strong>FN-DSA / FALCON</strong></td><td>Experimental</td><td>KeyGen, Sign, Verify, tamper resistance, Level 1 & 5</td></tr>
+            <tr><td><strong>NTT</strong></td><td>—</td><td>Roundtrip, multiplication, polynomial arithmetic</td></tr>
+            <tr><td><strong>Protocol Extensions</strong></td><td>—</td><td>QUIC PQC handshake, Signal v4 X3DH + double ratchet, WireGuard PQC handshake</td></tr>
+            <tr><td><strong>Quantum Threat</strong></td><td>—</td><td>Risk estimation, sector recommendations, qubit timeline</td></tr>
+            <tr><td><strong>Reed-Muller</strong></td><td>—</td><td>Encode/decode, noise tolerance, GF tables</td></tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>Generated on <strong>2026-05-25</strong> · Python 3.14.5 · pytest 9.0.3 · Windows x64</p>
+        <p class="details">Total runtime: ~17s · Pass rate: 96.8%</p>
+        <p style="margin-top: 1rem;">📄 <a href="https://github.com/mcemkoca/qscg" style="color: var(--info);">github.com/mcemkoca/qscg</a></p>
+    </div>
+</body>
+</html>

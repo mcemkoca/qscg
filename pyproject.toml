@@ -9,7 +9,7 @@ description = "NIST FIPS 203/204/205 compliant post-quantum cryptography with qu
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "M.Cem Koca {Deuterium12}", email = "mcemkoca0@gmail.com"}
+    {name = "deuterium12 (M.Cem Koca)", email = "mcemkoca0@gmail.com"}
 ]
 keywords = ["cryptography", "post-quantum", "quantum-safe", "nist", "fips-203", "fips-204", "fips-205", "ml-kem", "ml-dsa", "slh-dsa"]
 classifiers = [

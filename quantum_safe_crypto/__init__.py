@@ -5,7 +5,7 @@ NIST FIPS 203/204/205 + HQC (IR 8545) + FN-DSA (FIPS 206 draft)
 """
 
 __version__ = "3.0.0"
-__author__ = "Mehmet Cem Koca (mcemkoca)"
+__author__ = "deuterium12 (M.Cem Koca)"
 __license__ = "MIT"
 
 __all__ = [
