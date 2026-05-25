@@ -15,6 +15,10 @@
 - **Workspace cleanup**: removed 18 files (debug scripts, reports, submodule remnants, OpenClaw metadata)
 - **`.gitignore`**: expanded to prevent future workspace artifact inclusion
 
+### Research Integration
+- Added **Roadmap** section to README informed by [Ahmed et al. (2025), *A Survey of Post-Quantum Cryptography Support in Cryptographic Libraries*](https://arxiv.org/abs/2508.16078)
+- GitHub Issues created: [#3](https://github.com/mcemkoca/qscg/issues/3) LMS/XMSS, [#4](https://github.com/mcemkoca/qscg/issues/4) Hybrid X25519+ML-KEM, [#5](https://github.com/mcemkoca/qscg/issues/5) Side-channel audit, [#6](https://github.com/mcemkoca/qscg/issues/6) Benchmark suite, [#7](https://github.com/mcemkoca/qscg/issues/7) CNSA 2.0 matrix
+
 ## v3.0.0 - 2026-05-20
 
 ### Added
