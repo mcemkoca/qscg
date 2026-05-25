@@ -68,10 +68,10 @@ Three years later, QSCG is a working reference implementation, a testbed for hyb
 
 | Milestone | Target | Issue | Description |
 |:----------|:------:|:-----:|:------------|
-| **LMS / XMSS** | Q3 2026 | [#3](https://github.com/mcemkoca/qscg/issues/3) | Stateful hash signatures (SP 800-208) for firmware signing — critical for CNSA 2.0 compliance |
-| **Hybrid X25519+ML-KEM** | Q3 2026 | [#4](https://github.com/mcemkoca/qscg/issues/4) | Production-ready hybrid key exchange (IETF draft) for TLS 1.3 and HNDL protection |
+| **LMS / XMSS** | 🔄 In Progress | [#3](https://github.com/mcemkoca/qscg/issues/3) | Stateful hash signatures (SP 800-208) — stubs created, full impl pending |
+| **Hybrid X25519+ML-KEM** | 🔄 In Progress | [#4](https://github.com/mcemkoca/qscg/issues/4) | Hybrid key exchange stub created (IETF draft), full TLS 1.3 integration pending |
 | **Side-channel Audit** | Q2 2026 | [#5](https://github.com/mcemkoca/qscg/issues/5) | KyberSlash-style timing attack mitigation; constant-time review of ML-KEM decapsulation |
-| **Benchmark Suite** | Q3 2026 | [#6](https://github.com/mcemkoca/qscg/issues/6) | Standardized ops/sec and latency benchmarks vs wolfSSL, Bouncy Castle, Botan |
+| **Benchmark Suite** | 🔄 In Progress | [#6](https://github.com/mcemkoca/qscg/issues/6) | pytest-benchmark skeleton created, CI integration and cross-platform runs pending |
 | **CNSA 2.0 Matrix** | Q2 2026 | [#7](https://github.com/mcemkoca/qscg/issues/7) | Compliance documentation mapping QSCG algorithms to NSA CNSA 2.0 requirements |
 | **ML-DSA Modular Fix** | Q2 2026 | — | Fix rejection-sampling loop in `src/qscg/ml_dsa/ml_dsa.py` sign/verify |
 | **FN-DSA / FALCON** | Q4 2026 | — | NTRU lattice compact signatures (smaller sigs than ML-DSA) |
